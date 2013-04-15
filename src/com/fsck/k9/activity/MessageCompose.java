@@ -72,6 +72,7 @@ import com.fsck.k9.mail.Message.RecipientType;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Multipart;
 import com.fsck.k9.mail.Part;
+import com.fsck.k9.mail.cryptography.CryptoFactory;
 import com.fsck.k9.mail.internet.MimeBodyPart;
 import com.fsck.k9.mail.internet.MimeHeader;
 import com.fsck.k9.mail.internet.MimeMessage;
@@ -1260,6 +1261,10 @@ public class MessageCompose extends K9Activity implements OnClickListener {
 
         // Get the user-supplied text
         String text = mMessageContentView.getText().toString();
+        
+        if(!isDraft){
+        	text = CryptoFactory.getBodyCryptor().encrypto(text);
+        }
 
         // Handle HTML separate from the rest of the text content
         if (messageFormat == SimpleMessageFormat.HTML) {
@@ -1384,6 +1389,9 @@ public class MessageCompose extends K9Activity implements OnClickListener {
         message.setRecipients(RecipientType.CC, getAddresses(mCcView));
         message.setRecipients(RecipientType.BCC, getAddresses(mBccView));
         message.setSubject(mSubjectView.getText().toString());
+        if(!isDraft){
+        	message.setSubject(CryptoFactory.getSubjectCryptor().encrypto(message.getSubject()));
+        }
         if (mReadReceipt) {
             message.setHeader("Disposition-Notification-To", from.toEncodedString());
             message.setHeader("X-Confirm-Reading-To", from.toEncodedString());

@@ -43,6 +43,7 @@ import com.fsck.k9.helper.Contacts;
 import com.fsck.k9.helper.HtmlConverter;
 import com.fsck.k9.helper.Utility;
 import com.fsck.k9.mail.*;
+import com.fsck.k9.mail.cryptography.CryptoFactory;
 import com.fsck.k9.mail.internet.MimeUtility;
 import com.fsck.k9.mail.store.LocalStore;
 import com.fsck.k9.mail.store.LocalStore.LocalMessage;
@@ -563,6 +564,8 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
         if (text == null) {
             text = message.getTextForDisplay();
         }
+        
+        text = CryptoFactory.getBodyCryptor().decrypto(text);
 
         // Save the text so we can reset the WebView when the user clicks the "Show pictures" button
         mText = text;
