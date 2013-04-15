@@ -38,7 +38,6 @@ import com.fsck.k9.mail.Flag;
 import com.fsck.k9.mail.Message;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Part;
-import com.fsck.k9.mail.cryptography.CryptoFactory;
 import com.fsck.k9.mail.store.LocalStore.LocalMessage;
 import com.fsck.k9.view.AttachmentView;
 import com.fsck.k9.view.AttachmentView.AttachmentFileDownloadCallback;
@@ -569,9 +568,9 @@ public class MessageViewFragment extends SherlockFragment implements OnClickList
                     mMessageView.setHeaders(clonedMessage, account);
                     final String subject = clonedMessage.getSubject();
                     if (subject == null || subject.equals("")) {
-                        displayMessageSubject(CryptoFactory.getSubjectCryptor().decrypto(mContext.getString(R.string.general_no_subject)));
+                        displayMessageSubject(mContext.getString(R.string.general_no_subject));
                     } else {
-                        displayMessageSubject(CryptoFactory.getSubjectCryptor().decrypto(clonedMessage.getSubject()));
+                        displayMessageSubject(clonedMessage.getSubject());
                     }
                     mMessageView.setOnFlagListener(new OnClickListener() {
                         @Override
