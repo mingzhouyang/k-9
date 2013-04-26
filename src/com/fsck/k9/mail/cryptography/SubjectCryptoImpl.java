@@ -4,16 +4,6 @@ package com.fsck.k9.mail.cryptography;
  * @author Hai Tao
  *
  */
-public class SubjectCryptoImpl implements ICrypto {
-
-	@Override
-	public String encrypto(String content) {
-		return "Boss Yang is handsome. "+ content;
-	}
-
-	@Override
-	public String decrypto(String content) {
-		return "Boss Yang is handsome. " + content;
-	}
+public class SubjectCryptoImpl  extends AESCommonCryptoImpl {
 
 }

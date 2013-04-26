@@ -71,6 +71,7 @@ import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Multipart;
 import com.fsck.k9.mail.Part;
 import com.fsck.k9.mail.cryptography.CryptoFactory;
+import com.fsck.k9.mail.cryptography.CryptorException;
 import com.fsck.k9.mail.internet.MimeBodyPart;
 import com.fsck.k9.mail.internet.MimeHeader;
 import com.fsck.k9.mail.internet.MimeMessage;
@@ -1197,7 +1198,11 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         String text = mMessageContentView.getText().toString();
         
         if(!isDraft){
-        	text = CryptoFactory.getBodyCryptor().encrypto(text);
+        	try {
+				text = CryptoFactory.getBodyCryptor().encrypto(text,"");
+			} catch (CryptorException e) {
+				e.printStackTrace();
+			}
         }
 
         // Handle HTML separate from the rest of the text content
@@ -1324,7 +1329,11 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         message.setRecipients(RecipientType.BCC, getAddresses(mBccView));
         message.setSubject(mSubjectView.getText().toString());
         if(!isDraft){
-        	message.setSubject(CryptoFactory.getSubjectCryptor().encrypto(message.getSubject()));
+        	try {
+				message.setSubject(CryptoFactory.getSubjectCryptor().encrypto(message.getSubject(),""));
+			} catch (CryptorException e) {
+				e.printStackTrace();
+			}
         }
         if (mReadReceipt) {
             message.setHeader("Disposition-Notification-To", from.toEncodedString());

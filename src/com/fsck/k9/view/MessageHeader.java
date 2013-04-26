@@ -1,5 +1,11 @@
 package com.fsck.k9.view;
 
+import java.text.DateFormat;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
 import android.content.Context;
 import android.graphics.Typeface;
 import android.os.Parcel;
@@ -7,35 +13,32 @@ import android.os.Parcelable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.style.StyleSpan;
-import android.util.Log;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.CheckBox;
 import android.widget.ImageView;
-import android.widget.ScrollView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.fsck.k9.Account;
 import com.fsck.k9.FontSizes;
 import com.fsck.k9.K9;
 import com.fsck.k9.R;
 import com.fsck.k9.helper.Contacts;
-import com.fsck.k9.Account;
 import com.fsck.k9.helper.DateFormatter;
 import com.fsck.k9.mail.Address;
 import com.fsck.k9.mail.Flag;
 import com.fsck.k9.mail.Message;
 import com.fsck.k9.mail.MessagingException;
+import com.fsck.k9.mail.cryptography.CryptoFactory;
+import com.fsck.k9.mail.cryptography.CryptorException;
 import com.fsck.k9.mail.internet.MimeUtility;
-
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.text.DateFormat;
 
 public class MessageHeader extends ScrollView implements OnClickListener {
     private Context mContext;
@@ -236,9 +239,17 @@ public class MessageHeader extends ScrollView implements OnClickListener {
         initializeLayout();
         String subject = message.getSubject();
         if (subject == null || subject.equals("")) {
-            mSubjectView.setText(mContext.getText(R.string.general_no_subject));
+        	try {
+				mSubjectView.setText(CryptoFactory.getSubjectCryptor().decrypto(mContext.getString(R.string.general_no_subject), ""));
+			} catch (CryptorException e) {
+				e.printStackTrace();
+			}
         } else {
-            mSubjectView.setText(subject);
+            try {
+				mSubjectView.setText(CryptoFactory.getSubjectCryptor().decrypto(subject, ""));
+			} catch (CryptorException e) {
+				e.printStackTrace();
+			}
         }
         mSubjectView.setTextColor(0xff000000 | defaultSubjectColor);
 

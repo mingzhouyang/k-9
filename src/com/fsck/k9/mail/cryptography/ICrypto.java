@@ -6,6 +6,19 @@ package com.fsck.k9.mail.cryptography;
  *
  */
 public interface ICrypto {
-	public String encrypto(String content);
-	public String decrypto(String content);
+	/**
+	 * Encrypt the specified content using the given password.
+	 * @param content
+	 * @param password
+	 * @return
+	 */
+	public String encrypto(String content, String password) throws CryptorException;
+	
+	/**
+	 * Decrypt the specified content using the given password.
+	 * @param content
+	 * @param password
+	 * @return
+	 */
+	public String decrypto(String content, String password) throws CryptorException;
 }
