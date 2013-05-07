@@ -9,6 +9,15 @@ import java.security.NoSuchAlgorithmException;
  *
  */
 public class HashIDGenerator {
+	
+	/**
+	 * Encrypt specified content  by SHA-256 digest algorithm
+	 * @param content
+	 * @return
+	 */
+	public static String SHA256(String content){
+		return generateHashID(content, null);
+	}
 	/**
 	 * Generate hashID by specified content string and digest algorithm. 
 	 * If not specify digest algorithm, use SHA-256 as default. 
