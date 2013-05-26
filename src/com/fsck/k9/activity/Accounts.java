@@ -35,18 +35,21 @@ import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.util.TypedValue;
 import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.Window;
-import android.view.ContextMenu.ContextMenuInfo;
-import android.view.View.OnClickListener;
 import android.webkit.WebView;
 import android.widget.AdapterView;
+import android.widget.AdapterView.AdapterContextMenuInfo;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -55,9 +58,6 @@ import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.AdapterView.AdapterContextMenuInfo;
-import android.widget.AdapterView.OnItemClickListener;
-import android.widget.CompoundButton.OnCheckedChangeListener;
 
 import com.fsck.k9.Account;
 import com.fsck.k9.AccountStats;
@@ -80,10 +80,11 @@ import com.fsck.k9.mail.Flag;
 import com.fsck.k9.mail.ServerSettings;
 import com.fsck.k9.mail.Store;
 import com.fsck.k9.mail.Transport;
+import com.fsck.k9.mail.cryptography.HttpPostService;
+import com.fsck.k9.mail.cryptography.PostResult;
 import com.fsck.k9.mail.internet.MimeUtility;
 import com.fsck.k9.mail.store.StorageManager;
 import com.fsck.k9.mail.store.WebDavStore;
-import com.fsck.k9.view.ColorChip;
 import com.fsck.k9.preferences.SettingsExporter;
 import com.fsck.k9.preferences.SettingsImportExportException;
 import com.fsck.k9.preferences.SettingsImporter;
@@ -91,6 +92,7 @@ import com.fsck.k9.preferences.SettingsImporter.AccountDescription;
 import com.fsck.k9.preferences.SettingsImporter.AccountDescriptionPair;
 import com.fsck.k9.preferences.SettingsImporter.ImportContents;
 import com.fsck.k9.preferences.SettingsImporter.ImportResults;
+import com.fsck.k9.view.ColorChip;
 
 
 public class Accounts extends K9ListActivity implements OnItemClickListener, OnClickListener {
@@ -119,6 +121,8 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
     private static final int DIALOG_CLEAR_ACCOUNT = 2;
     private static final int DIALOG_RECREATE_ACCOUNT = 3;
     private static final int DIALOG_NO_FILE_MANAGER = 4;
+    private static final int DIALOG_REG_SUCCESS = 5;
+    private static final int DIALOG_REG_FAILED = 6;
 
     private ConcurrentHashMap<String, AccountStats> accountStats = new ConcurrentHashMap<String, AccountStats>();
 
@@ -1005,14 +1009,39 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
                 return ConfirmationDialog.create(this, id,
                         R.string.import_dialog_error_title,
                         getString(R.string.import_dialog_error_message),
-                        R.string.open_market,
-                        R.string.close,
+                        R.string.okay_action,
+                        R.string.cancel_action,
                         new Runnable() {
                             @Override
                             public void run() {
                                 Uri uri = Uri.parse(ANDROID_MARKET_URL);
                                 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
                                 startActivity(intent);
+                            }
+                        });
+            }
+            case DIALOG_REG_SUCCESS: {
+                return ConfirmationDialog.create(this, id,
+                        R.string.apply_reg_encrypt_result_title,
+                        R.string.apply_reg_encrypt_result_success_message,
+                        R.string.okay_action,
+                        R.string.cancel_action,
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                            	MessagingController.getInstance(getApplication()).checkMail(getBaseContext(), (Account)mSelectedContextAccount, true, true, null);
+                            }
+                        });
+            }
+            case DIALOG_REG_FAILED: {
+                return ConfirmationDialog.create(this, id,
+                        R.string.apply_reg_encrypt_result_title,
+                        R.string.apply_reg_encrypt_result_failed_message,
+                        R.string.okay_action,
+                        R.string.cancel_action,
+                        new Runnable() {
+                            @Override
+                            public void run() {
                             }
                         });
             }
@@ -1631,7 +1660,8 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
                 holder.newMessageCount = (TextView) view.findViewById(R.id.new_message_count);
                 holder.flaggedMessageCount = (TextView) view.findViewById(R.id.flagged_message_count);
                 holder.activeIcons = (RelativeLayout) view.findViewById(R.id.active_icons);
-
+                holder.encryStatus = (TextView)view.findViewById(R.id.encrypt_status);
+                
                 holder.chip = view.findViewById(R.id.chip);
                 holder.folders = (ImageButton) view.findViewById(R.id.folders);
                 holder.accountsItemLayout = (LinearLayout)view.findViewById(R.id.accounts_item_layout);
@@ -1686,6 +1716,7 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
                 holder.flaggedMessageCount.setVisibility(View.GONE);
                 view.getBackground().setAlpha(0);
             }
+            
             if (account instanceof Account) {
                 Account realAccount = (Account)account;
 
@@ -1709,10 +1740,20 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
             if (K9.useCompactLayouts()) {
                 holder.accountsItemLayout.setMinimumHeight(0);
             }
+//            stats.regcode = "aaa";
             if (account instanceof SearchAccount || K9.useCompactLayouts()) {
-
+            	holder.encryStatus.setVisibility(View.GONE);
                 holder.folders.setVisibility(View.GONE);
             } else {
+            	Account _account = (Account)account;
+            	if(_account.getmRegcode() == null || _account.getmRegcode().trim().equals("")){
+            		holder.encryStatus.setVisibility(View.VISIBLE);
+	            	holder.encryStatus.setText(getString(R.string.apply_reg_encrypt));
+	            	holder.encryStatus.setOnClickListener(new RegEncryptClickListener((Account)account));
+            	}else{
+            		holder.encryStatus.setVisibility(View.VISIBLE);
+	            	holder.encryStatus.setText(getString(R.string.applied_reg_encrypt));
+            	}
                 holder.folders.setVisibility(View.VISIBLE);
                 holder.folders.setOnClickListener(new OnClickListener() {
                     public void onClick(View v) {
@@ -1734,6 +1775,7 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
             public View chip;
             public ImageButton folders;
             public LinearLayout accountsItemLayout;
+            public TextView encryStatus;
         }
     }
     private Flag[] combine(Flag[] set1, Flag[] set2) {
@@ -1747,6 +1789,27 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
         flags.addAll(Arrays.asList(set1));
         flags.addAll(Arrays.asList(set2));
         return flags.toArray(EMPTY_FLAG_ARRAY);
+    }
+    
+    private class RegEncryptClickListener implements OnClickListener{
+
+    	final Account account;
+    	
+    	RegEncryptClickListener(Account nAccount){
+    		account = nAccount;
+    	}
+		@Override
+		public void onClick(View v) {
+			PostResult pr = HttpPostService.postRegRequest(account.getEmail());
+//			PostResult pr = HttpPostServiceMock.postRegRequest(account.getEmail());
+			
+			if(pr.isSuccess()){
+				showDialog(DIALOG_REG_SUCCESS);
+			}else{
+				showDialog(DIALOG_REG_FAILED);
+			}
+		}
+    	
     }
 
     private class AccountClickListener implements OnClickListener {

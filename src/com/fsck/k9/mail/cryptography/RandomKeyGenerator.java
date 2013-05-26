@@ -1,5 +1,8 @@
 package com.fsck.k9.mail.cryptography;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Generator to generate random key
  * @author Hai Tao
@@ -22,6 +25,15 @@ public class RandomKeyGenerator {
 		 }
 		 return new String(ss);
 	}
+	
+	public static List<String> getRandomKeyList(int length, int size){
+		List<String> list = new ArrayList<String>();
+		for(int i=0; i<size; i++){
+			list.add(getRandomKey(length));
+		}
+		return list;
+	}
+	
 	public static void main(String[] args){
 		System.out.println(getRandomKey(16));
 		System.out.println(getRandomKey(1));

@@ -1114,4 +1114,9 @@ http://k9mail.googlecode.com/
 
     <string name="image_saved_as">Saved image as \"<xliff:g id="filename">%s</xliff:g>\"</string>
     <string name="image_saving_failed">Saving the image failed.</string>
+    <string name="apply_reg_encrypt">Apply encrypt</string>
+    <string name="applied_reg_encrypt">Applied encrypt</string>
+    <string name="apply_reg_encrypt_result_title">Apply encrypt</string>
+    <string name="apply_reg_encrypt_result_success_message">Send encypt request successfully.</string>
+    <string name="apply_reg_encrypt_result_failed_message">Send encypt request failed. Please go back to re-try later.</string>
 </resources>

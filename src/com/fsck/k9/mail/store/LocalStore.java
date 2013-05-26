@@ -50,6 +50,8 @@ import com.fsck.k9.mail.Message.RecipientType;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Part;
 import com.fsck.k9.mail.Store;
+import com.fsck.k9.mail.cryptography.AESEncryptor;
+import com.fsck.k9.mail.cryptography.CryptorException;
 import com.fsck.k9.mail.filter.Base64OutputStream;
 import com.fsck.k9.mail.internet.MimeBodyPart;
 import com.fsck.k9.mail.internet.MimeHeader;
@@ -3414,10 +3416,17 @@ public class LocalStore extends Store implements Serializable {
         private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
         private Application mApplication;
         private Uri mUri;
+        private String aeskey;
 
         public LocalAttachmentBody(Uri uri, Application application) {
             mApplication = application;
             mUri = uri;
+        }
+        
+        public LocalAttachmentBody(Uri uri, Application application, String aeskey) {
+            mApplication = application;
+            mUri = uri;
+            this.aeskey = aeskey;
         }
 
         public InputStream getInputStream() throws MessagingException {
@@ -3434,6 +3443,13 @@ public class LocalStore extends Store implements Serializable {
 
         public void writeTo(OutputStream out) throws IOException, MessagingException {
             InputStream in = getInputStream();
+            if(aeskey != null){
+            	try {
+					in = AESEncryptor.encrypt(in, aeskey);
+				} catch (CryptorException e) {
+					e.printStackTrace();
+				}   
+            }
             Base64OutputStream base64Out = new Base64OutputStream(out);
             try {
                 IOUtils.copy(in, base64Out);

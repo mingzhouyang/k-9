@@ -1,5 +1,9 @@
 package com.fsck.k9.mail.cryptography;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -59,6 +63,19 @@ public final class AESEncryptor {
 	 * Private constructor that should never be called.
 	 */
 	private AESEncryptor() {
+	}
+	
+	private static String inputStream2String(InputStream is) throws IOException{ 
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(); 
+        int   i=-1; 
+        while((i=is.read())!=-1){ 
+        baos.write(i); 
+        } 
+       return baos.toString(); 
+	} 
+	
+	public static InputStream encrypt(InputStream is, String password) throws UnsupportedEncodingException, CryptorException, IOException{
+		return new ByteArrayInputStream(encrypt(inputStream2String(is), password).getBytes(CHARSET_NAME));
 	}
 	
 	public static String encrypt(String content, String password) throws CryptorException{

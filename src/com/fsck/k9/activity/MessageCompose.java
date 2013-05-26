@@ -1,6 +1,26 @@
 package com.fsck.k9.activity;
 
 
+import java.io.File;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.StringTokenizer;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.james.mime4j.codec.EncoderUtil;
+import org.htmlcleaner.CleanerProperties;
+import org.htmlcleaner.HtmlCleaner;
+import org.htmlcleaner.SimpleHtmlSerializer;
+import org.htmlcleaner.TagNode;
+
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.app.Dialog;
@@ -43,6 +63,7 @@ import android.widget.LinearLayout;
 import android.widget.MultiAutoCompleteTextView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.fsck.k9.Account;
 import com.fsck.k9.Account.MessageFormat;
 import com.fsck.k9.Account.QuoteStyle;
@@ -70,8 +91,13 @@ import com.fsck.k9.mail.Message.RecipientType;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Multipart;
 import com.fsck.k9.mail.Part;
+import com.fsck.k9.mail.cryptography.AESEncryptor;
+import com.fsck.k9.mail.cryptography.AESKEYObject;
 import com.fsck.k9.mail.cryptography.CryptoFactory;
 import com.fsck.k9.mail.cryptography.CryptorException;
+import com.fsck.k9.mail.cryptography.HttpPostService;
+import com.fsck.k9.mail.cryptography.PostResult;
+import com.fsck.k9.mail.cryptography.RandomKeyGenerator;
 import com.fsck.k9.mail.internet.MimeBodyPart;
 import com.fsck.k9.mail.internet.MimeHeader;
 import com.fsck.k9.mail.internet.MimeMessage;
@@ -81,23 +107,6 @@ import com.fsck.k9.mail.internet.TextBody;
 import com.fsck.k9.mail.store.LocalStore;
 import com.fsck.k9.mail.store.LocalStore.LocalAttachmentBody;
 import com.fsck.k9.view.MessageWebView;
-import org.apache.james.mime4j.codec.EncoderUtil;
-import org.htmlcleaner.CleanerProperties;
-import org.htmlcleaner.HtmlCleaner;
-import org.htmlcleaner.SimpleHtmlSerializer;
-import org.htmlcleaner.TagNode;
-import java.io.File;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.StringTokenizer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class MessageCompose extends K9Activity implements OnClickListener, OnFocusChangeListener {
     private static final int DIALOG_SAVE_OR_DISCARD_DRAFT_MESSAGE = 1;
@@ -1151,8 +1160,8 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
      * appended and HTML separators between composed text and quoted text are not added.
      * @param isDraft If we should build a message that will be saved as a draft (as opposed to sent).
      */
-    private TextBody buildText(boolean isDraft) {
-        return buildText(isDraft, mMessageFormat);
+    private TextBody buildText(boolean isDraft, String aeskey) {
+        return buildText(isDraft, mMessageFormat, aeskey);
     }
 
     /**
@@ -1172,7 +1181,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
      * @return {@link TextBody} instance that contains the entered text and possibly the quoted
      *         original message.
      */
-    private TextBody buildText(boolean isDraft, SimpleMessageFormat messageFormat) {
+    private TextBody buildText(boolean isDraft, SimpleMessageFormat messageFormat, String aeskey) {
         // The length of the formatted version of the user-supplied text/reply
         int composedMessageLength;
 
@@ -1199,7 +1208,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         
         if(!isDraft){
         	try {
-				text = CryptoFactory.getBodyCryptor().encrypto(text,"");
+        		text = AESEncryptor.encrypt(text, aeskey);
 			} catch (CryptorException e) {
 				e.printStackTrace();
 			}
@@ -1354,6 +1363,18 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         if (mReferences != null) {
             message.setReferences(mReferences);
         }
+        List<AESKEYObject> aesKeys = null;
+        if(mAccount.hasReg()){
+	        aesKeys = genernateAESKeys(mAttachments.getChildCount() + 1);
+	        PostResult pr = HttpPostService.postSendEmail(mIdentity.getEmail(), message.getHeader("To")[0], mAccount.getmRegPassword(), mAccount.getmRegcode(), aesKeys);
+	        if(!pr.isSuccess()){
+	        	throw new MessagingException("Apply crypt email failed!");
+	        }
+	        for(int i=0; i<aesKeys.size(); i++){
+	        	AESKEYObject aeskey = aesKeys.get(i);
+	        	message.addHeader("secmail-uuid"+(i+1), aeskey.getUuid());
+	        }
+        }
 
         // Build the body.
         // TODO FIXME - body can be either an HTML or Text part, depending on whether we're in
@@ -1363,14 +1384,13 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             String text = mPgpData.getEncryptedData();
             body = new TextBody(text);
         } else {
-            body = buildText(isDraft);
+            body = buildText(isDraft, aesKeys != null ? aesKeys.get(0).getAesKey() : null);
         }
 
         // text/plain part when mMessageFormat == MessageFormat.HTML
         TextBody bodyPlain = null;
 
         final boolean hasAttachments = mAttachments.getChildCount() > 0;
-
         if (mMessageFormat == SimpleMessageFormat.HTML) {
             // HTML message (with alternative text part)
 
@@ -1378,7 +1398,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             MimeMultipart composedMimeMessage = new MimeMultipart();
             composedMimeMessage.setSubType("alternative");   // Let the receiver select either the text or the HTML part.
             composedMimeMessage.addBodyPart(new MimeBodyPart(body, "text/html"));
-            bodyPlain = buildText(isDraft, SimpleMessageFormat.TEXT);
+            bodyPlain = buildText(isDraft, SimpleMessageFormat.TEXT, aesKeys != null ? aesKeys.get(0).getAesKey() : null);
             composedMimeMessage.addBodyPart(new MimeBodyPart(bodyPlain, "text/plain"));
 
             if (hasAttachments) {
@@ -1388,7 +1408,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
                 // the attachments.
                 MimeMultipart mp = new MimeMultipart();
                 mp.addBodyPart(new MimeBodyPart(composedMimeMessage));
-                addAttachmentsToMessage(mp);
+                addAttachmentsToMessage(mp, aesKeys);
                 message.setBody(mp);
             } else {
                 // If no attachments, our multipart/alternative part is the only one we need.
@@ -1399,7 +1419,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             if (hasAttachments) {
                 MimeMultipart mp = new MimeMultipart();
                 mp.addBodyPart(new MimeBodyPart(body, "text/plain"));
-                addAttachmentsToMessage(mp);
+                addAttachmentsToMessage(mp, aesKeys);
                 message.setBody(mp);
             } else {
                 // No attachments to include, just stick the text body in the message and call it good.
@@ -1415,18 +1435,27 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 
         return message;
     }
+    
+    private List<AESKEYObject> genernateAESKeys(int size){
+    	List<String> aesKeys = RandomKeyGenerator.getRandomKeyList(32, size);
+        List<AESKEYObject> aeskeyList = new ArrayList<AESKEYObject>();
+        for(int i=0; i<aesKeys.size(); i++){
+        	aeskeyList.add(new AESKEYObject(aesKeys.get(i),UUID.randomUUID().toString()));
+        }
+        return aeskeyList;
+    }
 
     /**
      * Add attachments as parts into a MimeMultipart container.
      * @param mp MimeMultipart container in which to insert parts.
      * @throws MessagingException
      */
-    private void addAttachmentsToMessage(final MimeMultipart mp) throws MessagingException {
+    private void addAttachmentsToMessage(final MimeMultipart mp, List<AESKEYObject> aesKeys) throws MessagingException {
         for (int i = 0, count = mAttachments.getChildCount(); i < count; i++) {
             Attachment attachment = (Attachment) mAttachments.getChildAt(i).getTag();
 
             MimeBodyPart bp = new MimeBodyPart(
-                new LocalStore.LocalAttachmentBody(attachment.uri, getApplication()));
+                new LocalStore.LocalAttachmentBody(attachment.uri, getApplication(), aesKeys != null ? aesKeys.get(i+1).getAesKey() : null));
 
             /*
              * Correctly encode the filename here. Otherwise the whole
@@ -1751,7 +1780,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         }
         if (mPgpData.hasEncryptionKeys() || mPgpData.hasSignatureKey()) {
             if (mPgpData.getEncryptedData() == null) {
-                String text = buildText(false).getText();
+                String text = buildText(false, null).getText();
                 mPreventDraftSaving = true;
                 if (!crypto.encrypt(this, text, mPgpData)) {
                     mPreventDraftSaving = false;

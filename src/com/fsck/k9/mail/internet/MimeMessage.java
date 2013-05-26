@@ -359,6 +359,10 @@ public class MimeMessage extends Message {
     protected String getFirstHeader(String name) {
         return mHeader.getFirstHeader(name);
     }
+    
+    public Map<String, String> getCryptUUIDMap(){
+    	return mHeader.getCryptUUIDMap();
+    }
 
     @Override
     public void addHeader(String name, String value) throws UnavailableStorageException {

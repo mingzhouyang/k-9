@@ -1,5 +1,18 @@
 package com.fsck.k9.view;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.io.IOUtils;
+
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -21,7 +34,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
-import android.view.View.*;
+import android.view.View.OnClickListener;
+import android.view.View.OnCreateContextMenuListener;
 import android.webkit.WebView;
 import android.webkit.WebView.HitTestResult;
 import android.widget.Button;
@@ -40,23 +54,20 @@ import com.fsck.k9.helper.ClipboardManager;
 import com.fsck.k9.helper.Contacts;
 import com.fsck.k9.helper.HtmlConverter;
 import com.fsck.k9.helper.Utility;
-import com.fsck.k9.mail.*;
-import com.fsck.k9.mail.cryptography.CryptoFactory;
+import com.fsck.k9.mail.Address;
+import com.fsck.k9.mail.Flag;
+import com.fsck.k9.mail.Message;
+import com.fsck.k9.mail.MessagingException;
+import com.fsck.k9.mail.Multipart;
+import com.fsck.k9.mail.Part;
+import com.fsck.k9.mail.cryptography.AESEncryptor;
 import com.fsck.k9.mail.cryptography.CryptorException;
+import com.fsck.k9.mail.cryptography.HttpPostService;
+import com.fsck.k9.mail.cryptography.PostResult;
 import com.fsck.k9.mail.internet.MimeUtility;
 import com.fsck.k9.mail.store.LocalStore;
 import com.fsck.k9.mail.store.LocalStore.LocalMessage;
 import com.fsck.k9.provider.AttachmentProvider.AttachmentProviderColumns;
-
-import org.apache.commons.io.IOUtils;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLDecoder;
-import java.util.List;
 
 
 public class SingleMessageView extends LinearLayout implements OnClickListener,
@@ -544,12 +555,22 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
         if (text == null) {
             text = message.getTextForDisplay();
         }
-        
-        try {
-			text = CryptoFactory.getBodyCryptor().decrypto(text, "");
-		} catch (CryptorException e) {
-			e.printStackTrace();
-		}
+        Map<String, String> cryptUuidMap = message.getCryptUUIDMap();
+        if(cryptUuidMap != null && !cryptUuidMap.isEmpty()){
+        	List<String> keys = new ArrayList<String>(cryptUuidMap.keySet());
+        	Collections.sort(keys);
+        	List<String> uuidList = new ArrayList<String>();
+        	for(String key : keys){
+        		uuidList.add(cryptUuidMap.get(key));
+        	}
+        	List<String> aesKeyList = HttpPostService.postReceiveEmail(account.getEmail(), account.getmRegPassword(), account.getmRegcode(), uuidList);
+        	try {
+    			text = AESEncryptor.decrypt(text, aesKeyList.get(0));
+    		} catch (CryptorException e) {
+    			e.printStackTrace();
+    		}
+        	//TODO add logic to decrypt attachement
+        }
 
         // Save the text so we can reset the WebView when the user clicks the "Show pictures" button
         mText = text;

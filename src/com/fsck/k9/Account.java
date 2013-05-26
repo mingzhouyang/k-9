@@ -186,6 +186,8 @@ public class Account implements BaseAccount {
     private boolean mCryptoAutoSignature;
     private boolean mCryptoAutoEncrypt;
     private boolean mMarkMessageAsReadOnView;
+    private String mRegcode;						//crypt regcode
+    private String mRegPassword;					//crypt password
 
     private CryptoProvider mCryptoProvider = null;
 
@@ -335,6 +337,9 @@ public class Account implements BaseAccount {
         mSpamFolderName = prefs.getString(mUuid  + ".spamFolderName", "Spam");
         mExpungePolicy = prefs.getString(mUuid  + ".expungePolicy", EXPUNGE_IMMEDIATELY);
         mSyncRemoteDeletions = prefs.getBoolean(mUuid  + ".syncRemoteDeletions", true);
+        
+        mRegcode = prefs.getString(mUuid  + ".regcode", "");
+        mRegPassword = prefs.getString(mUuid  + ".regpassword", "");
 
         mMaxPushFolders = prefs.getInt(mUuid + ".maxPushFolders", 10);
         goToUnreadMessageSearch = prefs.getBoolean(mUuid + ".goToUnreadMessageSearch", false);
@@ -525,6 +530,7 @@ public class Account implements BaseAccount {
         editor.remove(mUuid + ".enableMoveButtons");
         editor.remove(mUuid + ".hideMoveButtonsEnum");
         editor.remove(mUuid + ".markMessageAsReadOnView");
+        editor.remove(mUuid + ".regcode");
         for (String type : networkTypes) {
             editor.remove(mUuid + ".useCompression." + type);
         }
@@ -646,6 +652,10 @@ public class Account implements BaseAccount {
         editor.putString(mUuid + ".trashFolderName", mTrashFolderName);
         editor.putString(mUuid + ".archiveFolderName", mArchiveFolderName);
         editor.putString(mUuid + ".spamFolderName", mSpamFolderName);
+        
+        editor.putString(mUuid + ".regcode", mRegcode);
+        editor.putString(mUuid + ".regpassword", mRegPassword);
+        
         editor.putString(mUuid + ".autoExpandFolderName", mAutoExpandFolderName);
         editor.putInt(mUuid + ".accountNumber", mAccountNumber);
         editor.putString(mUuid + ".sortTypeEnum", mSortType.name());
@@ -1026,16 +1036,40 @@ public class Account implements BaseAccount {
     public synchronized void setSpamFolderName(String spamFolderName) {
         mSpamFolderName = spamFolderName;
     }
+    
+    public synchronized boolean hasRegcode() {
+        return mRegcode != null && !mRegcode.trim().equals("");
+    }
 
-    /**
+    public synchronized String getmRegcode() {
+		return mRegcode;
+	}
+
+	public synchronized void setmRegcode(String mRegcode) {
+		this.mRegcode = mRegcode;
+	}
+	
+	public synchronized boolean hasReg() {
+		return mRegcode != null && !"".equals(mRegcode.trim());
+	}
+
+	/**
      * Checks if this account has a spam folder set.
      * @return true if account has a spam folder set.
      */
     public synchronized boolean hasSpamFolder() {
         return !K9.FOLDER_NONE.equalsIgnoreCase(mSpamFolderName);
     }
+    
+    public String getmRegPassword() {
+		return mRegPassword;
+	}
 
-    public synchronized String getOutboxFolderName() {
+	public void setmRegPassword(String mRegPassword) {
+		this.mRegPassword = mRegPassword;
+	}
+
+	public synchronized String getOutboxFolderName() {
         return OUTBOX;
     }
 
