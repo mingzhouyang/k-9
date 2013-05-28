@@ -2,19 +2,32 @@ package com.fsck.k9.mail.cryptography;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpVersion;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.conn.scheme.PlainSocketFactory;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpParams;
+import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.HTTP;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
+import android.util.Log;
 import android.util.Xml;
 
 public class HttpPostService {
@@ -23,7 +36,30 @@ public class HttpPostService {
 	private static String SEND_EMAIL = "https://www.han2011.com/secmail/send";
 	private static String RECEIVE_EMAIL = "https://www.han2011.com/secmail/receive";
 
-	
+	private static HttpClient getNewHttpClient() { 
+		   try { 
+		       KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType()); 
+		       trustStore.load(null, null); 
+
+		       SSLSocketFactory sf = new SSLSocketFactoryEx(trustStore); 
+		       sf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER); 
+
+		       HttpParams params = new BasicHttpParams(); 
+		       HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1); 
+		       HttpProtocolParams.setContentCharset(params, HTTP.UTF_8); 
+
+		       SchemeRegistry registry = new SchemeRegistry(); 
+		       registry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
+		        registry.register(new Scheme("https", sf, 443)); 
+
+		       ClientConnectionManager ccm = new ThreadSafeClientConnManager(params, registry);
+		 
+		       return new DefaultHttpClient(ccm, params); 
+		   } catch (Exception e) { 
+		       return new DefaultHttpClient(); 
+		   } 
+		} 
+
 	
 	private static PostResult post(String action, List<NameValuePair> params){
 		HttpPost httpRequest=null;     
@@ -31,12 +67,13 @@ public class HttpPostService {
 		httpRequest=new HttpPost(action);         
 		try {             
 			httpRequest.setEntity(new UrlEncodedFormEntity(params,HTTP.UTF_8));  
-			httpResponse=new DefaultHttpClient().execute(httpRequest);  
+			httpResponse=getNewHttpClient().execute(httpRequest);  
 			if(httpResponse.getStatusLine().getStatusCode()==200){    
 				return parsePostResult(httpResponse.getEntity().getContent());
 			}         
 		} catch (Exception e) {  
 			//Add exception process logic here
+			Log.d("reg_request", e.getMessage());
 		} 
 		return new PostResult();
 	}
@@ -100,7 +137,7 @@ public class HttpPostService {
 		List <NameValuePair> params = new ArrayList<NameValuePair>();
 		params.add(new BasicNameValuePair("mail", mailAddress));
 //		params.add(new BasicNameValuePair("passwd", HashIDGenerator.SHA256(password + regCode)));
-		params.add(new BasicNameValuePair("regCode", regcode));
+		params.add(new BasicNameValuePair("regcode", regcode));
 		return post(REG_CONFIRM, params);
 	}
 	

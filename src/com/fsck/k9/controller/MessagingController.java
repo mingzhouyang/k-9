@@ -69,7 +69,6 @@ import com.fsck.k9.mail.Store;
 import com.fsck.k9.mail.Transport;
 import com.fsck.k9.mail.cryptography.HttpPostService;
 import com.fsck.k9.mail.cryptography.PostResult;
-import com.fsck.k9.mail.internet.MimeHeader;
 import com.fsck.k9.mail.internet.MimeMessage;
 import com.fsck.k9.mail.internet.MimeUtility;
 import com.fsck.k9.mail.internet.TextBody;
@@ -1371,20 +1370,13 @@ public class MessagingController implements Runnable {
         }
     }
     
-    private void checkRegConfirm(Account account, Message message){
-    	if(!"secmail".equalsIgnoreCase(message.getSubject()))
+	private void checkRegConfirm(Account account, Message message){
+    	if(message.getSubject() == null || !message.getSubject().startsWith("secmail"))
     		return;
-    	if (message instanceof MimeMessage) {
-    		String regcode = null;
-    		MimeMessage msg = (MimeMessage)message;
-    		String[] regcodes = null;
-			try {
-				regcodes = msg.getHeader(MimeHeader.HEADER_REG_CODE);
-			} catch (UnavailableStorageException e) {
-				e.printStackTrace();
-			}
-    		if(regcodes != null)
-    			regcode = regcodes[0];
+    	
+    	if(message.getSubject().contains("regcode")){
+    		int index = message.getSubject().indexOf("regcode") + 8;
+    		String regcode = message.getSubject().substring(index).trim();
     		if(regcode != null 
     				&& !regcode.trim().equals("") 
     				&& !regcode.equalsIgnoreCase(account.getmRegcode())){
@@ -1396,6 +1388,29 @@ public class MessagingController implements Runnable {
     			}
     		}
     	}
+    		
+//    	if (message instanceof MimeMessage) {
+//    		String regcode = null;
+//    		MimeMessage msg = (MimeMessage)message;
+//    		String[] regcodes = null;
+//			try {
+//				regcodes = msg.getHeader(MimeHeader.HEADER_REG_CODE);
+//			} catch (UnavailableStorageException e) {
+//				e.printStackTrace();
+//			}
+//    		if(regcodes != null)
+//    			regcode = regcodes[0];
+//    		if(regcode != null 
+//    				&& !regcode.trim().equals("") 
+//    				&& !regcode.equalsIgnoreCase(account.getmRegcode())){
+//    			
+//    			PostResult pr = HttpPostService.postRegConfirm(account.getEmail(), regcode);
+//    			if(pr.isSuccess()){
+//    				account.setmRegcode(regcode);
+//    				account.setmRegPassword(pr.getPassword());
+//    			}
+//    		}
+//    	}
     }
 
     private void fetchUnsyncedMessages(final Account account, final Folder remoteFolder,
