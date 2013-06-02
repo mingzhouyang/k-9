@@ -2,7 +2,9 @@ package com.fsck.k9.mail.cryptography;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +36,7 @@ public class HttpPostService {
 	private static String REG_REQUEST = "https://www.han2011.com/secmail/reg_request";
 	private static String REG_CONFIRM = "https://www.han2011.com/secmail/reg_confirm";
 	private static String SEND_EMAIL = "https://www.han2011.com/secmail/send";
-	private static String RECEIVE_EMAIL = "https://www.han2011.com/secmail/receive";
+	private static String RECEIVE_EMAIL = "https://www.han2011.com/secmail/get";
 
 	private static HttpClient getNewHttpClient() { 
 		   try { 
@@ -152,21 +154,33 @@ public class HttpPostService {
 	 */
 	public static PostResult postSendEmail(String from, String to, String password, String regcode, List<AESKEYObject> aesKeys){
 		List <NameValuePair> params = new ArrayList<NameValuePair>();
-		String passwd = HashIDGenerator.SHA256(password + regcode);
-		params.add(new BasicNameValuePair("from", from));
-		params.add(new BasicNameValuePair("to", to));
-		params.add(new BasicNameValuePair("verify", HashIDGenerator.SHA256(passwd + aesKeys.get(0).getUuid())));
-		for(int i = 0; i < aesKeys.size(); i++){
-			AESKEYObject aesKey = aesKeys.get(i);
-			params.add(new BasicNameValuePair("uuid" + (i + 1), aesKey.getUuid()));
-			String pwd = passwd + HashIDGenerator.SHA256(aesKey.getUuid());
-			String key;
-			try {
-				key = AESEncryptor.encrypt(aesKey.getAesKey(), pwd);
-			} catch (CryptorException e) {
-				return new PostResult();
+		Hash h = Hash.getInstance();
+		String passwd;
+		try {
+			passwd = h.SHA256(password + regcode);
+			params.add(new BasicNameValuePair("from", from));
+			params.add(new BasicNameValuePair("to", to));
+			params.add(new BasicNameValuePair("verify", h.SHA256(passwd + aesKeys.get(0).getUuid())));
+			for(int i = 0; i < aesKeys.size(); i++){
+				AESKEYObject aesKey = aesKeys.get(i);
+				params.add(new BasicNameValuePair("uuid" + (i + 1), aesKey.getUuid()));
+				String pwd = passwd + h.SHA256(aesKey.getUuid());
+				String key;
+				try {
+					AesCryptor crypt = new AesCryptor(pwd);
+					key = crypt.encrypt(aesKey.getAesKey());
+	//				key = AESEncryptor.encrypt(aesKey.getAesKey(), pwd);
+				} catch (CryptorException e) {
+					return new PostResult();
+				}
+				params.add(new BasicNameValuePair("key" + (i + 1), key));
 			}
-			params.add(new BasicNameValuePair("key" + (i + 1), key));
+		} catch (NoSuchAlgorithmException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (UnsupportedEncodingException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
 		return post(SEND_EMAIL, params);
 	}
@@ -181,25 +195,39 @@ public class HttpPostService {
 	 */
 	public static List<String> postReceiveEmail(String owner, String password, String regcode, List<String> uuidList){
 		List <NameValuePair> params = new ArrayList<NameValuePair>();
-		String passwd = HashIDGenerator.SHA256(password + regcode);
-		params.add(new BasicNameValuePair("owner", owner));
-		params.add(new BasicNameValuePair("verify", HashIDGenerator.SHA256(passwd + uuidList.get(0))));
-		for(int i = 0; i < uuidList.size(); i++){
-			params.add(new BasicNameValuePair("uuid" + (i + 1), uuidList.get(i)));
-		}
-		PostResult pr = post(RECEIVE_EMAIL, params);
+		Hash h = Hash.getInstance();
+		String passwd;
 		List<String> aesKeyList = new ArrayList<String>();
-		if(pr.isSuccess()){
-			if(!pr.getUuidMap().isEmpty()){
-				for(int i = 0; i < uuidList.size(); i++){
-					String fromUuid = pr.getUuidMap().get("uuid" + (i + 1));
-					try {
-						aesKeyList.add(AESEncryptor.decrypt(fromUuid, passwd + HashIDGenerator.SHA256(uuidList.get(i))));
-					} catch (CryptorException e) {
-						e.printStackTrace();
+		try {
+			passwd = h.SHA256(password + regcode);
+		
+			params.add(new BasicNameValuePair("owner", owner));
+			params.add(new BasicNameValuePair("verify", h.SHA256(passwd + uuidList.get(0))));
+			for(int i = 0; i < uuidList.size(); i++){
+				params.add(new BasicNameValuePair("uuid" + (i + 1), uuidList.get(i)));
+			}
+			PostResult pr = post(RECEIVE_EMAIL, params);
+			
+			if(pr.isSuccess()){
+				if(!pr.getUuidMap().isEmpty()){
+					for(int i = 0; i < uuidList.size(); i++){
+						String fromUuid = pr.getUuidMap().get("uuid" + (i + 1));
+						try {
+							AesCryptor crypt = new AesCryptor(passwd + h.SHA256(uuidList.get(i)));
+							aesKeyList.add(crypt.decrypt(fromUuid));
+	//						aesKeyList.add(AESEncryptor.decrypt(fromUuid, passwd + HashIDGenerator.SHA256(uuidList.get(i))));
+						} catch (CryptorException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}
+		} catch (NoSuchAlgorithmException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (UnsupportedEncodingException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
 		return aesKeyList;
 	}

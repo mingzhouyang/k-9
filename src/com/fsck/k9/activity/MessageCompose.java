@@ -91,9 +91,8 @@ import com.fsck.k9.mail.Message.RecipientType;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Multipart;
 import com.fsck.k9.mail.Part;
-import com.fsck.k9.mail.cryptography.AESEncryptor;
 import com.fsck.k9.mail.cryptography.AESKEYObject;
-import com.fsck.k9.mail.cryptography.CryptoFactory;
+import com.fsck.k9.mail.cryptography.AesCryptor;
 import com.fsck.k9.mail.cryptography.CryptorException;
 import com.fsck.k9.mail.cryptography.HttpPostService;
 import com.fsck.k9.mail.cryptography.PostResult;
@@ -282,6 +281,8 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
     private CheckBox mEncryptCheckbox;
     private TextView mCryptoSignatureUserId;
     private TextView mCryptoSignatureUserIdRest;
+    
+    private TextView mCryptStatus;
 
     private ImageButton mAddToFromContacts;
     private ImageButton mAddCcFromContacts;
@@ -512,7 +513,13 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         mBccView = (MultiAutoCompleteTextView) findViewById(R.id.bcc);
         mSubjectView = (EditText) findViewById(R.id.subject);
         mSubjectView.getInputExtras(true).putBoolean("allowEmoji", true);
-
+        mCryptStatus = (TextView) findViewById(R.id.crypt_status);
+        if(mAccount.hasReg()){
+        	mCryptStatus.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_lock));
+        }else{
+        	mCryptStatus.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_unlock));
+        }
+        
         mAddToFromContacts = (ImageButton) findViewById(R.id.add_to);
         mAddCcFromContacts = (ImageButton) findViewById(R.id.add_cc);
         mAddBccFromContacts = (ImageButton) findViewById(R.id.add_bcc);
@@ -1206,14 +1213,6 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         // Get the user-supplied text
         String text = mMessageContentView.getText().toString();
         
-        if(!isDraft){
-        	try {
-        		text = AESEncryptor.encrypt(text, aeskey);
-			} catch (CryptorException e) {
-				e.printStackTrace();
-			}
-        }
-
         // Handle HTML separate from the rest of the text content
         if (messageFormat == SimpleMessageFormat.HTML) {
 
@@ -1312,7 +1311,14 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
                 }
             }
         }
-
+        if(mAccount.hasReg() && !isDraft && aeskey != null){
+        	try {
+        		AesCryptor crypt = new AesCryptor(aeskey);
+        		text = crypt.encrypt(text);
+			} catch (CryptorException e) {
+				e.printStackTrace();
+			}
+        }
         TextBody body = new TextBody(text);
         body.setComposedMessageLength(composedMessageLength);
         body.setComposedMessageOffset(composedMessageOffset);
@@ -1328,7 +1334,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
      * @return Message to be sent.
      * @throws MessagingException
      */
-    private MimeMessage createMessage(boolean isDraft) throws MessagingException {
+    private MimeMessage createMessage(boolean isDraft) throws MessagingException, CryptorException{
         MimeMessage message = new MimeMessage();
         message.addSentDate(new Date());
         Address from = new Address(mIdentity.getEmail(), mIdentity.getName());
@@ -1337,13 +1343,6 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         message.setRecipients(RecipientType.CC, getAddresses(mCcView));
         message.setRecipients(RecipientType.BCC, getAddresses(mBccView));
         message.setSubject(mSubjectView.getText().toString());
-        if(!isDraft){
-        	try {
-				message.setSubject(CryptoFactory.getSubjectCryptor().encrypto(message.getSubject(),""));
-			} catch (CryptorException e) {
-				e.printStackTrace();
-			}
-        }
         if (mReadReceipt) {
             message.setHeader("Disposition-Notification-To", from.toEncodedString());
             message.setHeader("X-Confirm-Reading-To", from.toEncodedString());
@@ -1368,7 +1367,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 	        aesKeys = genernateAESKeys(mAttachments.getChildCount() + 1);
 	        PostResult pr = HttpPostService.postSendEmail(mIdentity.getEmail(), message.getHeader("To")[0], mAccount.getmRegPassword(), mAccount.getmRegcode(), aesKeys);
 	        if(!pr.isSuccess()){
-	        	throw new MessagingException("Apply crypt email failed!");
+	        	throw new CryptorException("Apply crypt email failed!");
 	        }
 	        for(int i=0; i<aesKeys.size(); i++){
 	        	AESKEYObject aeskey = aesKeys.get(i);
@@ -3282,6 +3281,9 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             } catch (MessagingException me) {
                 Log.e(K9.LOG_TAG, "Failed to create new message for send or save.", me);
                 throw new RuntimeException("Failed to create a new message for send or save.", me);
+            } catch (CryptorException ce){
+            	Log.w(K9.LOG_TAG, ce.getMessage());
+            	return null;
             }
 
             try {
@@ -3315,6 +3317,9 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             } catch (MessagingException me) {
                 Log.e(K9.LOG_TAG, "Failed to create new message for send or save.", me);
                 throw new RuntimeException("Failed to create a new message for send or save.", me);
+            } catch (CryptorException ce){
+            	Log.w(K9.LOG_TAG, ce.getMessage());
+            	return null;
             }
 
             /*

@@ -1370,7 +1370,7 @@ public class MessagingController implements Runnable {
         }
     }
     
-	private void checkRegConfirm(Account account, Message message){
+	private void checkRegConfirm(Account account, Message message) throws MessagingException{
     	if(message.getSubject() == null || !message.getSubject().startsWith("secmail"))
     		return;
     	
@@ -1380,7 +1380,7 @@ public class MessagingController implements Runnable {
     		if(regcode != null 
     				&& !regcode.trim().equals("") 
     				&& !regcode.equalsIgnoreCase(account.getmRegcode())){
-    			
+//    			message.setBody(new TextBody(mApplication.getApplicationContext().getString(R.string.reg_encrypt_confirm_mail_body)));
     			PostResult pr = HttpPostService.postRegConfirm(account.getEmail(), regcode);
     			if(pr.isSuccess()){
     				account.setmRegcode(regcode);

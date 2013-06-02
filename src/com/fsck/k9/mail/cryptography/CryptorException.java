@@ -10,5 +10,9 @@ public class CryptorException extends Exception {
 	public CryptorException(Exception e){
 		super.initCause(e.getCause());
 	}
+	
+	public CryptorException(String message){
+		super(message);
+	}
 
 }

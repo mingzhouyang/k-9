@@ -51,6 +51,7 @@ import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Part;
 import com.fsck.k9.mail.Store;
 import com.fsck.k9.mail.cryptography.AESEncryptor;
+import com.fsck.k9.mail.cryptography.AesCryptor;
 import com.fsck.k9.mail.cryptography.CryptorException;
 import com.fsck.k9.mail.filter.Base64OutputStream;
 import com.fsck.k9.mail.internet.MimeBodyPart;
@@ -3445,7 +3446,9 @@ public class LocalStore extends Store implements Serializable {
             InputStream in = getInputStream();
             if(aeskey != null){
             	try {
-					in = AESEncryptor.encrypt(in, aeskey);
+            		AesCryptor crypt = new AesCryptor(aeskey);
+            		crypt.encrypt(in, out);
+//					in = AESEncryptor.encrypt(in, aeskey);
 				} catch (CryptorException e) {
 					e.printStackTrace();
 				}   

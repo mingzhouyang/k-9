@@ -131,6 +131,14 @@
         android:icon="@drawable/ic_menu_account_list"
     />
     <item
+		android:id="@+id/reg_crypt"
+		android:title="@string/reg_crypt_action"
+	/>
+    <item
+		android:id="@+id/cancel_crypt"
+		android:title="@string/cancel_crypt_action"
+	/>
+    <item
         android:id="@+id/mark_all_as_read"
         android:title="@string/mark_all_as_read_action"
         android:icon="@drawable/ic_menu_inbox"

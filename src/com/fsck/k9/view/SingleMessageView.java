@@ -61,6 +61,7 @@ import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Multipart;
 import com.fsck.k9.mail.Part;
 import com.fsck.k9.mail.cryptography.AESEncryptor;
+import com.fsck.k9.mail.cryptography.AesCryptor;
 import com.fsck.k9.mail.cryptography.CryptorException;
 import com.fsck.k9.mail.cryptography.HttpPostService;
 import com.fsck.k9.mail.cryptography.PostResult;
@@ -564,13 +565,23 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
         		uuidList.add(cryptUuidMap.get(key));
         	}
         	List<String> aesKeyList = HttpPostService.postReceiveEmail(account.getEmail(), account.getmRegPassword(), account.getmRegcode(), uuidList);
-        	try {
-    			text = AESEncryptor.decrypt(text, aesKeyList.get(0));
-    		} catch (CryptorException e) {
-    			e.printStackTrace();
-    		}
+        	if(!aesKeyList.isEmpty()){
+	        	try {
+	        		AesCryptor crypt = new AesCryptor(aesKeyList.get(0));
+	        		text = crypt.decrypt(text);
+	//    			text = AESEncryptor.decrypt(text, aesKeyList.get(0));
+	    		} catch (CryptorException e) {
+	    			e.printStackTrace();
+	    		}
+        	}
         	//TODO add logic to decrypt attachement
         }
+        if(message.getSubject() != null 
+        		&& message.getSubject().startsWith("secmail") 
+        		&& message.getSubject().contains("regcode")){
+        	text = getContext().getString(R.string.reg_encrypt_confirm_mail_body);
+        }
+        	
 
         // Save the text so we can reset the WebView when the user clicks the "Show pictures" button
         mText = text;

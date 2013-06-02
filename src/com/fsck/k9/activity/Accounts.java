@@ -123,6 +123,7 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
     private static final int DIALOG_NO_FILE_MANAGER = 4;
     private static final int DIALOG_REG_SUCCESS = 5;
     private static final int DIALOG_REG_FAILED = 6;
+    private static final int DIALOG_CANCEL_REG = 7;
 
     private ConcurrentHashMap<String, AccountStats> accountStats = new ConcurrentHashMap<String, AccountStats>();
 
@@ -1045,6 +1046,32 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
                             }
                         });
             }
+            case DIALOG_CANCEL_REG: {
+                return ConfirmationDialog.create(this, id,
+                        R.string.cancel_reg_encrypt_result_title,
+                        getString(R.string.cancel_reg_encrypt_message),
+                        R.string.okay_action,
+                        R.string.cancel_action,
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                            	if (mSelectedContextAccount instanceof Account) {
+                                    Account realAccount = (Account) mSelectedContextAccount;
+                                    realAccount.setmRegcode(null);
+                                    realAccount.setmRegPassword(null);
+                                    realAccount.save(Preferences.getPreferences(Accounts.this));
+                                    mSelectedContextAccount = null;
+                            	}
+                            	refresh();
+                            }
+                        },
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                            	refresh();
+                            }
+                        });
+            }
         }
 
         return super.onCreateDialog(id);
@@ -1748,11 +1775,14 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
             	Account _account = (Account)account;
             	if(_account.getmRegcode() == null || _account.getmRegcode().trim().equals("")){
             		holder.encryStatus.setVisibility(View.VISIBLE);
-	            	holder.encryStatus.setText(getString(R.string.apply_reg_encrypt));
+            		holder.encryStatus.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_unlock));
+//	            	holder.encryStatus.setText(getString(R.string.apply_reg_encrypt));
 	            	holder.encryStatus.setOnClickListener(new RegEncryptClickListener((Account)account));
             	}else{
             		holder.encryStatus.setVisibility(View.VISIBLE);
-	            	holder.encryStatus.setText(getString(R.string.applied_reg_encrypt));
+            		holder.encryStatus.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_lock));
+//	            	holder.encryStatus.setText(getString(R.string.applied_reg_encrypt));
+	            	holder.encryStatus.setOnClickListener(new RegDecryptClickListener((Account)account));
             	}
                 holder.folders.setVisibility(View.VISIBLE);
                 holder.folders.setOnClickListener(new OnClickListener() {
@@ -1791,6 +1821,18 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
         return flags.toArray(EMPTY_FLAG_ARRAY);
     }
     
+    private class RegDecryptClickListener implements OnClickListener{
+
+    	RegDecryptClickListener(Account nAccount){
+    		mSelectedContextAccount = nAccount;
+    	}
+		@Override
+		public void onClick(View v) {
+			showDialog(DIALOG_CANCEL_REG);
+		}
+    	
+    }
+    
     private class RegEncryptClickListener implements OnClickListener{
 
     	final Account account;
@@ -1801,7 +1843,6 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
 		@Override
 		public void onClick(View v) {
 			PostResult pr = HttpPostService.postRegRequest(account.getEmail());
-//			PostResult pr = HttpPostServiceMock.postRegRequest(account.getEmail());
 			
 			if(pr.isSuccess()){
 				showDialog(DIALOG_REG_SUCCESS);

@@ -69,10 +69,13 @@ import com.fsck.k9.helper.Utility;
 import com.fsck.k9.mail.Flag;
 import com.fsck.k9.mail.Folder;
 import com.fsck.k9.mail.Message;
+import com.fsck.k9.mail.cryptography.HttpPostService;
+import com.fsck.k9.mail.cryptography.PostResult;
 import com.fsck.k9.mail.store.LocalStore;
 import com.fsck.k9.mail.store.LocalStore.LocalFolder;
 import com.fsck.k9.mail.store.LocalStore.LocalMessage;
 import com.fsck.k9.mail.store.StorageManager;
+import com.fsck.k9.mail.store.UnavailableStorageException;
 
 
 /**
@@ -83,6 +86,11 @@ import com.fsck.k9.mail.store.StorageManager;
 public class MessageList
     extends K9Activity
     implements OnClickListener, AdapterView.OnItemClickListener, AnimationListener {
+	
+	private static final int DIALOG_REG_CONFIRM = 4;
+	private static final int DIALOG_CANCEL_REG = 7;
+	private static final int DIALOG_REG_SUCCESS = 5;
+    private static final int DIALOG_REG_FAILED = 6;
 
     /**
      * Reverses the result of a {@link Comparator}.
@@ -669,6 +677,7 @@ public class MessageList
             // in toggling the 'selected' checkbox.
             setSelected(Collections.singletonList(message), !message.selected);
         } else {
+        	mSelectedMessage = message;
             onOpenMessage(message);
         }
     }
@@ -1136,7 +1145,25 @@ public class MessageList
     }
 
     private void onOpenMessage(MessageInfoHolder message) {
-        if (message.folder.name.equals(message.message.getFolder().getAccount().getDraftsFolderName())) {
+    	try {
+			message.message.getHeaderNames();
+		} catch (UnavailableStorageException e) {
+			e.printStackTrace();
+		}
+    	Map<String, String> cryptUuidMap = message.message.getCryptUUIDMap();
+        if(cryptUuidMap != null 
+        		&& !cryptUuidMap.isEmpty()
+        		&& !message.message.getFolder().getAccount().hasReg()){
+        	//crypt message
+        	showDialog(DIALOG_REG_CONFIRM);
+        }else{
+        	mSelectedMessage = null;
+        	openMessage(message);
+        }
+    }
+    
+    private void openMessage(MessageInfoHolder message){
+    	if (message.folder.name.equals(message.message.getFolder().getAccount().getDraftsFolderName())) {
             MessageCompose.actionEditDraft(this, message.message.getFolder().getAccount(), message.message);
         } else {
             // Need to get the list before the sort starts
@@ -1174,6 +1201,20 @@ public class MessageList
     private void onShowFolderList() {
         FolderList.actionHandleAccount(this, mAccount);
         finish();
+    }
+    
+    private void onRegCrypt(){
+    	PostResult pr = HttpPostService.postRegRequest(mAccount.getEmail());
+		
+		if(pr.isSuccess()){
+			showDialog(DIALOG_REG_SUCCESS);
+		}else{
+			showDialog(DIALOG_REG_FAILED);
+		}
+    }
+    
+    private void onCancelCrypt(){
+    	showDialog(DIALOG_CANCEL_REG);
     }
 
     private void onCompose() {
@@ -1403,7 +1444,76 @@ public class MessageList
                     mActiveMessages = null;
                 }
             });
+            
+	        case DIALOG_REG_CONFIRM: {
+	            return ConfirmationDialog.create(this, id,
+	                    R.string.apply_reg_encrypt,
+	                    getString(R.string.reg_encrypt_confirm_dialog),
+	                    R.string.okay_action,
+	                    R.string.cancel_action,
+	                    new Runnable() {
+	                        @Override
+	                        public void run() {
+	                        	onRegCrypt();
+	                        }
+	                    },
+		                new Runnable() {
+		                    @Override
+		                    public void run() {
+		                    	openMessage(mSelectedMessage);
+		                    	mSelectedMessage = null;
+		                    }
+		                });
+	        }
+	        case DIALOG_REG_SUCCESS: {
+	            return ConfirmationDialog.create(this, id,
+	                    R.string.apply_reg_encrypt_result_title,
+	                    R.string.apply_reg_encrypt_result_success_message,
+	                    R.string.okay_action,
+	                    R.string.cancel_action,
+	                    new Runnable() {
+	                        @Override
+	                        public void run() {
+	                        	if (mFolderName != null) {
+	                        		mController.synchronizeMailbox(mAccount, mFolderName, mAdapter.mListener, null);
+	                        	}
+	                        }
+	                    });
+	        }
+	        case DIALOG_REG_FAILED: {
+	            return ConfirmationDialog.create(this, id,
+	                    R.string.apply_reg_encrypt_result_title,
+	                    R.string.apply_reg_encrypt_result_failed_message,
+	                    R.string.okay_action,
+	                    R.string.cancel_action,
+	                    new Runnable() {
+	                        @Override
+	                        public void run() {
+	                        }
+	                    });
+	        }
+	        case DIALOG_CANCEL_REG: {
+		        return ConfirmationDialog.create(this, id,
+		                R.string.cancel_reg_encrypt_result_title,
+		                getString(R.string.cancel_reg_encrypt_message),
+		                R.string.okay_action,
+		                R.string.cancel_action,
+		                new Runnable() {
+		                    @Override
+		                    public void run() {
+		                    	mAccount.setmRegcode(null);
+		                    	mAccount.setmRegPassword(null);
+		                    	mAccount.save(Preferences.getPreferences(MessageList.this));
+		                    }
+		                },
+		                new Runnable() {
+		                    @Override
+		                    public void run() {
+		                    }
+		                });
+		    }
         }
+	    
 
         return super.onCreateDialog(id);
     }
@@ -1569,6 +1679,14 @@ public class MessageList
             onShowFolderList();
             return true;
         }
+        case R.id.reg_crypt:{
+            onRegCrypt();
+            return true;
+        }
+        case R.id.cancel_crypt:{
+            onCancelCrypt();
+            return true;
+        }
         case R.id.mark_all_as_read: {
             if (mFolderName != null) {
                 onMarkAllAsRead(mAccount, mFolderName);
@@ -1638,6 +1756,8 @@ public class MessageList
         if (mQueryString != null) {
             menu.findItem(R.id.mark_all_as_read).setVisible(false);
             menu.findItem(R.id.list_folders).setVisible(false);
+            menu.findItem(R.id.reg_crypt).setVisible(false);
+            menu.findItem(R.id.cancel_crypt).setVisible(false);
             menu.findItem(R.id.expunge).setVisible(false);
             menu.findItem(R.id.batch_archive_op).setVisible(false);
             menu.findItem(R.id.batch_spam_op).setVisible(false);
@@ -1662,6 +1782,13 @@ public class MessageList
             }
             if (!mAccount.hasSpamFolder()) {
                 menu.findItem(R.id.batch_spam_op).setVisible(false);
+            }
+            if(mAccount.hasReg()){
+            	menu.findItem(R.id.reg_crypt).setVisible(false);
+            	menu.findItem(R.id.cancel_crypt).setVisible(true);
+            }else{
+            	menu.findItem(R.id.cancel_crypt).setVisible(false);
+            	menu.findItem(R.id.reg_crypt).setVisible(true);
             }
 
             if (!mController.isMoveCapable(mAccount)) {
@@ -1702,8 +1829,6 @@ public class MessageList
     public boolean onContextItemSelected(MenuItem item) {
         AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
         final MessageInfoHolder holder = mSelectedMessage == null ? (MessageInfoHolder) mAdapter.getItem(info.position) : mSelectedMessage;
-        // don't need this anymore
-        mSelectedMessage = null;
 
         final List<MessageInfoHolder> selection = getSelectionFromMessage(holder);
         switch (item.getItemId()) {
@@ -1775,6 +1900,8 @@ public class MessageList
             break;
         }
         }
+        // don't need this anymore
+        mSelectedMessage = null;
         return super.onContextItemSelected(item);
     }
 

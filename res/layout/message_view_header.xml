@@ -148,6 +148,12 @@
                             android:layout_height="22sp"
                             android:paddingRight="4dip"
                             android:background="@drawable/ic_email_answered_small"/>
+                        
+                        <View
+                            android:id="@+id/cryptStatus"
+                            android:layout_width="22sp"
+                            android:layout_height="22sp"
+                            android:background="@drawable/ic_email_unlock"/>
 
                         <CheckBox
                             android:id="@+id/flagged"

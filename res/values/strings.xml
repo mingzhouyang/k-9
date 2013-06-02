@@ -168,6 +168,8 @@ http://k9mail.googlecode.com/
     <string name="expunge_action">Expunge</string>
     <string name="clear_local_folder_action">Clear local messages</string>
     <string name="about_action">About</string>
+    <string name="reg_crypt_action">Apply crypt</string>
+    <string name="cancel_crypt_action">Cancel crypt</string>
 
     <string name="prefs_title">Settings</string>
     <string name="accounts_context_menu_title">Account options</string>
@@ -1119,4 +1121,8 @@ http://k9mail.googlecode.com/
     <string name="apply_reg_encrypt_result_title">Apply encrypt</string>
     <string name="apply_reg_encrypt_result_success_message">Send encypt request successfully.</string>
     <string name="apply_reg_encrypt_result_failed_message">Send encypt request failed. Please go back to re-try later.</string>
+    <string name="cancel_reg_encrypt_result_title">Cancel encrypt</string>
+    <string name="cancel_reg_encrypt_message">Are you sure to cancel encypt?</string>
+    <string name="reg_encrypt_confirm_mail_body">Welcome to use secmail crypt system, you do not need to reply, k-9 will auto process this mail.</string>
+    <string name="reg_encrypt_confirm_dialog">Apply encrypt to read this mail, continue?</string>
 </resources>

@@ -1036,10 +1036,6 @@ public class Account implements BaseAccount {
     public synchronized void setSpamFolderName(String spamFolderName) {
         mSpamFolderName = spamFolderName;
     }
-    
-    public synchronized boolean hasRegcode() {
-        return mRegcode != null && !mRegcode.trim().equals("");
-    }
 
     public synchronized String getmRegcode() {
 		return mRegcode;

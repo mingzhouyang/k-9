@@ -27,6 +27,7 @@
 		android:title="@string/check_mail_action"
 		android:icon="@drawable/ic_menu_refresh"
 	/>
+	
 	<!-- 
 		<item android:id="@+id/search"
 		android:title="@string/search_action" />

@@ -164,6 +164,8 @@
     <string name="expunge_action">删除</string>
     <string name="clear_local_folder_action">清空本地邮件</string>
     <string name="about_action">关于</string>
+    <string name="reg_crypt_action">启用加密邮件功能</string>
+    <string name="cancel_crypt_action">取消加密邮件服务</string>
 
     <string name="prefs_title">设置</string>
     <string name="accounts_context_menu_title">账户选项</string>
@@ -1091,6 +1093,13 @@
 
     <string name="image_saved_as">保存图片到文件 \"<xliff:g id="filename">%s</xliff:g>\"</string>
     <string name="image_saving_failed">保存图片失败</string>
-       <string name="apply_reg_encrypt">注册加密</string>
+    <string name="apply_reg_encrypt">注册加密</string>
     <string name="applied_reg_encrypt">已加密</string>
+    <string name="apply_reg_encrypt_result_title">申请加密</string>
+    <string name="apply_reg_encrypt_result_success_message">加密申请发送成功.</string>
+    <string name="apply_reg_encrypt_result_failed_message">加密申请发送失败，请重试。</string>
+    <string name="cancel_reg_encrypt_result_title">取消加密</string>
+    <string name="cancel_reg_encrypt_message">加密功能将被取消，是否继续？</string>
+    <string name="reg_encrypt_confirm_mail_body">欢迎使用secmail加密邮件系统，您无需回复这封邮件，K-9会自动处理这封邮件.</string>
+    <string name="reg_encrypt_confirm_dialog">正常阅读此邮件及其附件需要开启加密邮件功能，是否开启？</string>
 </resources>

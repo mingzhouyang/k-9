@@ -4,6 +4,7 @@ import java.text.DateFormat;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import android.content.Context;
@@ -36,9 +37,8 @@ import com.fsck.k9.mail.Address;
 import com.fsck.k9.mail.Flag;
 import com.fsck.k9.mail.Message;
 import com.fsck.k9.mail.MessagingException;
-import com.fsck.k9.mail.cryptography.CryptoFactory;
-import com.fsck.k9.mail.cryptography.CryptorException;
 import com.fsck.k9.mail.internet.MimeUtility;
+import com.fsck.k9.mail.store.LocalStore.LocalMessage;
 
 public class MessageHeader extends ScrollView implements OnClickListener {
     private Context mContext;
@@ -60,6 +60,7 @@ public class MessageHeader extends ScrollView implements OnClickListener {
     private LinearLayout mCcContainerView;
     private TextView mAdditionalHeadersView;
     private View mAnsweredIcon;
+    private View mcryptStatusIcon;
     private Message mMessage;
     private Account mAccount;
     private FontSizes mFontSizes = K9.getFontSizes();
@@ -93,6 +94,7 @@ public class MessageHeader extends ScrollView implements OnClickListener {
 
     private void initializeLayout() {
         mAnsweredIcon = findViewById(R.id.answered);
+        mcryptStatusIcon = findViewById(R.id.cryptStatus);
         mFromView = (TextView) findViewById(R.id.from);
         mToView = (TextView) findViewById(R.id.to);
         mCcView = (TextView) findViewById(R.id.cc);
@@ -239,17 +241,9 @@ public class MessageHeader extends ScrollView implements OnClickListener {
         initializeLayout();
         String subject = message.getSubject();
         if (subject == null || subject.equals("")) {
-        	try {
-				mSubjectView.setText(CryptoFactory.getSubjectCryptor().decrypto(mContext.getString(R.string.general_no_subject), ""));
-			} catch (CryptorException e) {
-				e.printStackTrace();
-			}
+        	mSubjectView.setText(mContext.getString(R.string.general_no_subject));
         } else {
-            try {
-				mSubjectView.setText(CryptoFactory.getSubjectCryptor().decrypto(subject, ""));
-			} catch (CryptorException e) {
-				e.printStackTrace();
-			}
+        	mSubjectView.setText(subject);
         }
         mSubjectView.setTextColor(0xff000000 | defaultSubjectColor);
 
@@ -267,6 +261,21 @@ public class MessageHeader extends ScrollView implements OnClickListener {
         mCcContainerView.setVisibility((cc != null && cc.length() > 0) ? View.VISIBLE : View.GONE);
         mCcView.setText(cc);
         mAnsweredIcon.setVisibility(message.isSet(Flag.ANSWERED) ? View.VISIBLE : View.GONE);
+        if(mMessage instanceof LocalMessage){
+        	mcryptStatusIcon.setVisibility(View.VISIBLE);
+        	LocalMessage lm = (LocalMessage)mMessage;
+        	lm.getHeaderNames();
+        	Map<String, String> cryptUuidMap = lm.getCryptUUIDMap();
+            if(cryptUuidMap != null && !cryptUuidMap.isEmpty()){
+            	mcryptStatusIcon.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_email_lock));  
+            }else{
+            	mcryptStatusIcon.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_email_unlock));
+            }
+            
+        }else{
+        	mcryptStatusIcon.setVisibility(View.GONE);
+        }
+        
         mFlagged.setChecked(message.isSet(Flag.FLAGGED));
 
         int chipColor = mAccount.getChipColor();
