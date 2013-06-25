@@ -60,11 +60,7 @@ import com.fsck.k9.mail.Message;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Multipart;
 import com.fsck.k9.mail.Part;
-import com.fsck.k9.mail.cryptography.AESEncryptor;
-import com.fsck.k9.mail.cryptography.AesCryptor;
-import com.fsck.k9.mail.cryptography.CryptorException;
 import com.fsck.k9.mail.cryptography.HttpPostService;
-import com.fsck.k9.mail.cryptography.PostResult;
 import com.fsck.k9.mail.internet.MimeUtility;
 import com.fsck.k9.mail.store.LocalStore;
 import com.fsck.k9.mail.store.LocalStore.LocalMessage;
@@ -556,26 +552,7 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
         if (text == null) {
             text = message.getTextForDisplay();
         }
-        Map<String, String> cryptUuidMap = message.getCryptUUIDMap();
-        if(cryptUuidMap != null && !cryptUuidMap.isEmpty()){
-        	List<String> keys = new ArrayList<String>(cryptUuidMap.keySet());
-        	Collections.sort(keys);
-        	List<String> uuidList = new ArrayList<String>();
-        	for(String key : keys){
-        		uuidList.add(cryptUuidMap.get(key));
-        	}
-        	List<String> aesKeyList = HttpPostService.postReceiveEmail(account.getEmail(), account.getmRegPassword(), account.getmRegcode(), uuidList);
-        	if(!aesKeyList.isEmpty()){
-	        	try {
-	        		AesCryptor crypt = new AesCryptor(aesKeyList.get(0));
-	        		text = crypt.decrypt(text);
-	//    			text = AESEncryptor.decrypt(text, aesKeyList.get(0));
-	    		} catch (CryptorException e) {
-	    			e.printStackTrace();
-	    		}
-        	}
-        	//TODO add logic to decrypt attachement
-        }
+        
         if(message.getSubject() != null 
         		&& message.getSubject().startsWith("secmail") 
         		&& message.getSubject().contains("regcode")){
@@ -588,10 +565,27 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
 
         mHasAttachments = message.hasAttachments();
 
-        if (mHasAttachments) {
-            renderAttachments(message, 0, message, account, controller, listener);
+        Map<String, String> cryptUuidMap = message.getCryptUUIDMap();
+        if(cryptUuidMap != null && !cryptUuidMap.isEmpty()){
+        	List<String> keys = new ArrayList<String>(cryptUuidMap.keySet());
+        	Collections.sort(keys);
+        	List<String> uuidList = new ArrayList<String>();
+        	for(String key : keys){
+        		uuidList.add(cryptUuidMap.get(key));
+        	}
+        	List<String> aesKeyList = HttpPostService.postReceiveEmail(account.getEmail(), account.getmRegPassword(), account.getmRegcode(), uuidList);
+        	if(!aesKeyList.isEmpty()){
+        		if(mHasAttachments){
+	        		text = renderAttachments(message, 0, message, account, controller, listener,aesKeyList, 0);
+	                mHasAttachments = message.hasAttachments();
+        		}
+        	}else{
+        		renderAttachments(message, 0, message, account, controller, listener, null, 0);
+        	}
+        }else if (mHasAttachments) {
+            renderAttachments(message, 0, message, account, controller, listener, null, 0);
         }
-
+        
         mHiddenAttachments.setVisibility(View.GONE);
 
         boolean lookForImages = true;
@@ -641,7 +635,7 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
             showStatusMessage(getContext().getString(R.string.webview_empty_message));
         }
     }
-
+    
     public void showStatusMessage(String status) {
         String text = "<html><body><div style=\"text-align:center; color: grey;\">" +
                 status +
@@ -695,21 +689,30 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
         }
     }
 
-    public void renderAttachments(Part part, int depth, Message message, Account account,
-                                  MessagingController controller, MessagingListener listener) throws MessagingException {
-
+    public String renderAttachments(Part part, int depth, LocalMessage message, Account account,
+                                  MessagingController controller, MessagingListener listener, List<String> aesKeyList, int j) throws MessagingException {
+    	String text = "";
         if (part.getBody() instanceof Multipart) {
             Multipart mp = (Multipart) part.getBody();
+            int k = 0;
             for (int i = 0; i < mp.getCount(); i++) {
-                renderAttachments(mp.getBodyPart(i), depth + 1, message, account, controller, listener);
+            	Part _part = mp.getBodyPart(i);
+            	text = renderAttachments(_part, depth + 1, message, account, controller, listener, aesKeyList, k);
+                if(_part instanceof LocalStore.LocalAttachmentBodyPart){
+                	k++;
+                }
             }
         } else if (part instanceof LocalStore.LocalAttachmentBodyPart) {
             AttachmentView view = (AttachmentView)mInflater.inflate(R.layout.message_view_attachment, null);
             view.setCallback(attachmentCallback);
 
             try {
-                if (view.populateFromPart(part, message, account, controller, listener)) {
-                    addAttachment(view);
+                if (view.populateFromPart(part, message, account, controller, listener, aesKeyList != null ? aesKeyList.get(j) : null)) {
+                	if(view.isMailBody()){
+                		text = view.getMailBody();
+                	}else{
+                		addAttachment(view);
+                	}
                 } else {
                     addHiddenAttachment(view);
                 }
@@ -717,6 +720,7 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
                 Log.e(K9.LOG_TAG, "Error adding attachment view", e);
             }
         }
+        return text;
     }
 
     public void addAttachment(View attachmentView) {

@@ -2,6 +2,9 @@ package com.fsck.k9.activity;
 
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,6 +18,7 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.james.mime4j.codec.EncoderUtil;
 import org.htmlcleaner.CleanerProperties;
 import org.htmlcleaner.HtmlCleaner;
@@ -1313,8 +1317,9 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         }
         if(mAccount.hasReg() && !isDraft && aeskey != null){
         	try {
-        		AesCryptor crypt = new AesCryptor(aeskey);
-        		text = crypt.encrypt(text);
+        		Uri message = getMessageTextBodyUri(text);
+        		addAttachment(message);
+        		text = getBaseContext().getString(R.string.encrypt_mail_body_message);
 			} catch (CryptorException e) {
 				e.printStackTrace();
 			}
@@ -1374,7 +1379,8 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 	        	message.addHeader("secmail-uuid"+(i+1), aeskey.getUuid());
 	        }
         }
-
+        AESKEYObject bodyAESObj = aesKeys != null ? aesKeys.get(mAttachments.getChildCount()) : null;
+        String bodyAeskey = bodyAESObj != null ? bodyAESObj.getAesKey() : null;
         // Build the body.
         // TODO FIXME - body can be either an HTML or Text part, depending on whether we're in
         // HTML mode or not.  Should probably fix this so we don't mix up html and text parts.
@@ -1383,7 +1389,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             String text = mPgpData.getEncryptedData();
             body = new TextBody(text);
         } else {
-            body = buildText(isDraft, aesKeys != null ? aesKeys.get(0).getAesKey() : null);
+            body = buildText(isDraft, bodyAeskey);
         }
 
         // text/plain part when mMessageFormat == MessageFormat.HTML
@@ -1397,7 +1403,11 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             MimeMultipart composedMimeMessage = new MimeMultipart();
             composedMimeMessage.setSubType("alternative");   // Let the receiver select either the text or the HTML part.
             composedMimeMessage.addBodyPart(new MimeBodyPart(body, "text/html"));
-            bodyPlain = buildText(isDraft, SimpleMessageFormat.TEXT, aesKeys != null ? aesKeys.get(0).getAesKey() : null);
+            bodyPlain = buildText(isDraft, SimpleMessageFormat.TEXT, bodyAeskey);
+            if(bodyAeskey != null){
+            	aesKeys.add(bodyAESObj);
+            	message.addHeader("secmail-uuid"+(aesKeys.size()), bodyAESObj.getUuid());
+            }
             composedMimeMessage.addBodyPart(new MimeBodyPart(bodyPlain, "text/plain"));
 
             if (hasAttachments) {
@@ -1435,6 +1445,31 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         return message;
     }
     
+    /**
+     * Persist mail message in a temp file. 
+     * @param text
+     * @return
+     * @throws CryptorException
+     */
+    private Uri getMessageTextBodyUri(String text) throws CryptorException{
+    	try{
+    		File file = Utility.createUniqueFile(new File(K9.getAttachmentDefaultPath()), "mbdy.txt");
+	    	OutputStream out = new FileOutputStream(file);
+	    	IOUtils.write(text, out);
+	    	out.flush();
+            out.close();
+	    	return Uri.fromFile(file);
+    	} catch (IOException ioe) {
+    		throw new CryptorException("Encrypt email failed!");
+        }
+    }
+    
+    public void mailEncryFailed() {
+        Toast.makeText(getApplicationContext(),
+        		getApplicationContext().getString(R.string.encrypt_mail_failed),
+                       Toast.LENGTH_LONG).show();
+    }
+    
     private List<AESKEYObject> genernateAESKeys(int size){
     	List<String> aesKeys = RandomKeyGenerator.getRandomKeyList(32, size);
         List<AESKEYObject> aeskeyList = new ArrayList<AESKEYObject>();
@@ -1454,7 +1489,8 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             Attachment attachment = (Attachment) mAttachments.getChildAt(i).getTag();
 
             MimeBodyPart bp = new MimeBodyPart(
-                new LocalStore.LocalAttachmentBody(attachment.uri, getApplication(), aesKeys != null ? aesKeys.get(i+1).getAesKey() : null));
+                new LocalStore.LocalAttachmentBody(attachment.uri, getApplication(), aesKeys != null ? aesKeys.get(i).getAesKey() : null));
+//            		new LocalStore.LocalAttachmentBody(attachment.uri, getApplication(), "xxx"));
 
             /*
              * Correctly encode the filename here. Otherwise the whole
@@ -3282,6 +3318,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
                 Log.e(K9.LOG_TAG, "Failed to create new message for send or save.", me);
                 throw new RuntimeException("Failed to create a new message for send or save.", me);
             } catch (CryptorException ce){
+            	mailEncryFailed();
             	Log.w(K9.LOG_TAG, ce.getMessage());
             	return null;
             }

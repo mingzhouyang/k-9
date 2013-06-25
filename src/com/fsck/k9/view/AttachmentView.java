@@ -1,5 +1,6 @@
 package com.fsck.k9.view;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -37,6 +38,8 @@ import com.fsck.k9.helper.Utility;
 import com.fsck.k9.mail.Message;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Part;
+import com.fsck.k9.mail.cryptography.AesCryptor;
+import com.fsck.k9.mail.cryptography.CryptorException;
 import com.fsck.k9.mail.internet.MimeHeader;
 import com.fsck.k9.mail.internet.MimeUtility;
 import com.fsck.k9.mail.store.LocalStore.LocalAttachmentBodyPart;
@@ -55,6 +58,8 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
     public String contentType;
     public long size;
     public ImageView iconView;
+    private String aeskey;
+    private boolean isMailBody;
 
     private AttachmentFileDownloadCallback callback;
 
@@ -107,7 +112,7 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
      *          In case of an error
      */
     public boolean populateFromPart(Part inputPart, Message message, Account account,
-            MessagingController controller, MessagingListener listener) throws MessagingException {
+            MessagingController controller, MessagingListener listener, String aeskey) throws MessagingException {
         boolean firstClassAttachment = true;
         part = (LocalAttachmentBodyPart) inputPart;
 
@@ -177,6 +182,9 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
         } else {
             attachmentIcon.setImageResource(R.drawable.attached_image_placeholder);
         }
+//        aeskey = ((LocalAttachmentBody)part.getBody()).getAeskey();
+        this.aeskey = aeskey;
+        isMailBody = name.startsWith("mbdy") && name.endsWith(".txt");
 
         return firstClassAttachment;
     }
@@ -243,7 +251,16 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
             Uri uri = AttachmentProvider.getAttachmentUri(mAccount, part.getAttachmentId());
             InputStream in = mContext.getContentResolver().openInputStream(uri);
             OutputStream out = new FileOutputStream(file);
-            IOUtils.copy(in, out);
+            if(aeskey != null){
+            	try {
+            		AesCryptor crypt = new AesCryptor(aeskey);
+            		crypt.decrypt(in, out);
+				} catch (CryptorException e) {
+					Log.e(K9.LOG_TAG, "Error Decrypt email attachement.", e);
+				}   
+            }else{
+            	IOUtils.copy(in, out);
+            }
             out.flush();
             out.close();
             in.close();
@@ -285,6 +302,7 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
 
     public void showFile() {
         Uri uri = AttachmentProvider.getAttachmentUriForViewing(mAccount, part.getAttachmentId());
+        uri = decryptAttachement(uri);
         Intent intent = new Intent(Intent.ACTION_VIEW);
         // We explicitly set the ContentType in addition to the URI because some attachment viewers (such as Polaris office 3.0.x) choke on documents without a mime type
         intent.setDataAndType(uri, contentType);
@@ -297,6 +315,32 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
             Toast toast = Toast.makeText(mContext, mContext.getString(R.string.message_view_no_viewer, contentType), Toast.LENGTH_LONG);
             toast.show();
         }
+    }
+    
+    private Uri decryptAttachement(Uri uri){
+    	if(aeskey == null)
+    		return uri;
+    	try {
+//            String filename = Utility.sanitizeFilename(name);
+            File file = Utility.createUniqueFile(new File(K9.getAttachmentDefaultPath()), name);
+            InputStream in = mContext.getContentResolver().openInputStream(uri);
+            OutputStream out = new FileOutputStream(file);
+            try {
+        		AesCryptor crypt = new AesCryptor(aeskey);
+        		crypt.decrypt(in, out);
+			} catch (CryptorException e) {
+				Log.e(K9.LOG_TAG, "Error Decrypt email attachement.", e);
+			} 
+            out.flush();
+            out.close();
+            in.close();
+            return Uri.fromFile(file);
+        } catch (IOException ioe) {
+            if (K9.DEBUG) {
+                Log.e(K9.LOG_TAG, "Error Decrypt email attachement.", ioe);
+            }
+        }
+    	return null;
     }
 
     /**
@@ -347,5 +391,41 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
     public void setCallback(AttachmentFileDownloadCallback callback) {
         this.callback = callback;
     }
+	public String getAeskey() {
+		return aeskey;
+	}
+	public void setAeskey(String aeskey) {
+		this.aeskey = aeskey;
+	}
+	public boolean isMailBody() {
+		return isMailBody;
+	}
+	public void setMailBody(boolean isMailBody) {
+		this.isMailBody = isMailBody;
+	}
+	
+	public String getMailBody(){
+		String msg = "";
+		if(aeskey != null && isMailBody){
+			 Uri uri = AttachmentProvider.getAttachmentUri(mAccount, part.getAttachmentId());
+	         try {
+				InputStream in = mContext.getContentResolver().openInputStream(uri);
+				OutputStream out = new ByteArrayOutputStream();
+				try {
+            		AesCryptor crypt = new AesCryptor(aeskey);
+            		crypt.decrypt(in, out);
+				} catch (CryptorException e) {
+					e.printStackTrace();
+				}  
+				msg = out.toString();
+				out.flush();
+	            out.close();
+	            in.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return msg;
+	}
 
 }

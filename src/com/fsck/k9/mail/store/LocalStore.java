@@ -1,7 +1,15 @@
 
 package com.fsck.k9.mail.store;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,7 +25,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import com.fsck.k9.helper.HtmlConverter;
 import org.apache.commons.io.IOUtils;
 
 import android.app.Application;
@@ -31,13 +38,14 @@ import android.net.Uri;
 import android.util.Log;
 
 import com.fsck.k9.Account;
+import com.fsck.k9.Account.MessageFormat;
 import com.fsck.k9.AccountStats;
 import com.fsck.k9.K9;
 import com.fsck.k9.Preferences;
 import com.fsck.k9.R;
-import com.fsck.k9.Account.MessageFormat;
 import com.fsck.k9.controller.MessageRemovalListener;
 import com.fsck.k9.controller.MessageRetrievalListener;
+import com.fsck.k9.helper.HtmlConverter;
 import com.fsck.k9.helper.Utility;
 import com.fsck.k9.mail.Address;
 import com.fsck.k9.mail.Body;
@@ -50,9 +58,9 @@ import com.fsck.k9.mail.Message.RecipientType;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Part;
 import com.fsck.k9.mail.Store;
-import com.fsck.k9.mail.cryptography.AESEncryptor;
 import com.fsck.k9.mail.cryptography.AesCryptor;
 import com.fsck.k9.mail.cryptography.CryptorException;
+import com.fsck.k9.mail.cryptography.HttpPostService;
 import com.fsck.k9.mail.filter.Base64OutputStream;
 import com.fsck.k9.mail.internet.MimeBodyPart;
 import com.fsck.k9.mail.internet.MimeHeader;
@@ -61,6 +69,7 @@ import com.fsck.k9.mail.internet.MimeMultipart;
 import com.fsck.k9.mail.internet.MimeUtility;
 import com.fsck.k9.mail.internet.MimeUtility.ViewableContainer;
 import com.fsck.k9.mail.internet.TextBody;
+import com.fsck.k9.mail.store.ImapStore.ImapMessage;
 import com.fsck.k9.mail.store.LockableDatabase.DbCallback;
 import com.fsck.k9.mail.store.LockableDatabase.WrappedException;
 import com.fsck.k9.mail.store.StorageManager.StorageProvider;
@@ -191,7 +200,7 @@ public class LocalStore extends Store implements Serializable {
                         db.execSQL("DROP TABLE IF EXISTS attachments");
                         db.execSQL("CREATE TABLE attachments (id INTEGER PRIMARY KEY, message_id INTEGER,"
                                    + "store_data TEXT, content_uri TEXT, size INTEGER, name TEXT,"
-                                   + "mime_type TEXT, content_id TEXT, content_disposition TEXT)");
+                                   + "mime_type TEXT, content_id TEXT, content_disposition TEXT, aeskey TEXT)");
 
                         db.execSQL("DROP TABLE IF EXISTS pending_commands");
                         db.execSQL("CREATE TABLE pending_commands " +
@@ -1663,7 +1672,8 @@ public class LocalStore extends Store implements Serializable {
                                                          "store_data",
                                                          "content_uri",
                                                          "content_id",
-                                                         "content_disposition"
+                                                         "content_disposition",
+                                                         "aeskey"
                                                      },
                                                      "message_id = ?",
                                                      new String[] { Long.toString(localMessage.mId) },
@@ -1680,6 +1690,7 @@ public class LocalStore extends Store implements Serializable {
                                             String contentUri = cursor.getString(5);
                                             String contentId = cursor.getString(6);
                                             String contentDisposition = cursor.getString(7);
+                                            String aeskey = cursor.getString(8);
                                             Body body = null;
 
                                             if (contentDisposition == null) {
@@ -1687,7 +1698,7 @@ public class LocalStore extends Store implements Serializable {
                                             }
 
                                             if (contentUri != null) {
-                                                body = new LocalAttachmentBody(Uri.parse(contentUri), mApplication);
+                                                body = new LocalAttachmentBody(Uri.parse(contentUri), mApplication, aeskey);
                                             }
 
                                             MimeBodyPart bp = new LocalAttachmentBodyPart(body, id);
@@ -1942,7 +1953,7 @@ public class LocalStore extends Store implements Serializable {
             if (!(folder instanceof LocalFolder)) {
                 throw new MessagingException("copyMessages called with incorrect Folder");
             }
-            return ((LocalFolder) folder).appendMessages(msgs, true);
+            return ((LocalFolder) folder).appendMessages2(msgs, true, false);
         }
 
         @Override
@@ -2056,6 +2067,10 @@ public class LocalStore extends Store implements Serializable {
         public Map<String, String> appendMessages(Message[] messages) throws MessagingException {
             return appendMessages(messages, false);
         }
+        
+        public Map<String, String> appendMessages(Message[] messages, boolean receive) throws MessagingException {
+            return 	appendMessages2(messages, false, receive);
+        }
 
         public void destroyMessages(final Message[] messages) throws MessagingException {
             try {
@@ -2092,7 +2107,7 @@ public class LocalStore extends Store implements Serializable {
          * @param copy
          * @return Map<String, String> uidMap of srcUids -> destUids
          */
-        private Map<String, String> appendMessages(final Message[] messages, final boolean copy) throws MessagingException {
+        private Map<String, String> appendMessages2(final Message[] messages, final boolean copy, final boolean receive) throws MessagingException {
             open(OpenMode.READ_WRITE);
             try {
                 final Map<String, String> uidMap = new HashMap<String, String>();
@@ -2197,7 +2212,6 @@ public class LocalStore extends Store implements Serializable {
                                         cv.put("message_id", messageId);
                                     }
                                     long messageUid;
-
                                     if (oldMessageId == -1) {
                                         messageUid = db.insert("messages", "uid", cv);
                                     } else {
@@ -2379,6 +2393,7 @@ public class LocalStore extends Store implements Serializable {
                         try {
                             long attachmentId = -1;
                             Uri contentUri = null;
+                            String aeskey = null;
                             int size = -1;
                             File tempAttachmentFile = null;
 
@@ -2391,6 +2406,7 @@ public class LocalStore extends Store implements Serializable {
                                 Body body = attachment.getBody();
                                 if (body instanceof LocalAttachmentBody) {
                                     contentUri = ((LocalAttachmentBody) body).getContentUri();
+                                    aeskey = ((LocalAttachmentBody) body).getAeskey();
                                 } else if (body instanceof Message) {
                                     // It's a message, so use Message.writeTo() to output the
                                     // message including all children.
@@ -2473,6 +2489,7 @@ public class LocalStore extends Store implements Serializable {
                                 cv.put("mime_type", attachment.getMimeType());
                                 cv.put("content_id", contentId);
                                 cv.put("content_disposition", dispositionType);
+                                cv.put("aeskey", aeskey);
 
                                 attachmentId = db.insert("attachments", "message_id", cv);
                             } else {
@@ -3083,6 +3100,10 @@ public class LocalStore extends Store implements Serializable {
         public int getAttachmentCount() {
             return mAttachmentCount;
         }
+        
+        public void decreaseAttachmentCount(){
+        	mAttachmentCount -= mAttachmentCount;
+        }
 
         @Override
         public void setFrom(Address from) throws MessagingException {
@@ -3444,25 +3465,33 @@ public class LocalStore extends Store implements Serializable {
 
         public void writeTo(OutputStream out) throws IOException, MessagingException {
             InputStream in = getInputStream();
+            Base64OutputStream base64Out = new Base64OutputStream(out);
             if(aeskey != null){
             	try {
             		AesCryptor crypt = new AesCryptor(aeskey);
-            		crypt.encrypt(in, out);
-//					in = AESEncryptor.encrypt(in, aeskey);
+            		crypt.encrypt(in, base64Out);
 				} catch (CryptorException e) {
 					e.printStackTrace();
 				}   
+            }else{
+	            try {
+	                IOUtils.copy(in, base64Out);
+	            } finally {
+	            	base64Out.close();
+	            }
             }
-            Base64OutputStream base64Out = new Base64OutputStream(out);
-            try {
-                IOUtils.copy(in, base64Out);
-            } finally {
-                base64Out.close();
-            }
+            in.close();
         }
 
         public Uri getContentUri() {
             return mUri;
+        }
+        
+        public String getAeskey(){
+        	return aeskey;
+        }
+        public void setAeskey(String aeskey){
+        	this.aeskey = aeskey;
         }
     }
 }

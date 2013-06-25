@@ -1520,7 +1520,7 @@ public class MessagingController implements Runnable {
         }
         try {
             // Store the new message locally
-            localFolder.appendMessages(messages.toArray(new Message[messages.size()]));
+            localFolder.appendMessages(messages.toArray(new Message[messages.size()]), true);
 
             for (final Message message : messages) {
                 final Message localMessage = localFolder.getMessage(message.getUid());
