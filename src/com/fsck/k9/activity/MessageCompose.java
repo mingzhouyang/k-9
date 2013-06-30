@@ -1,13 +1,16 @@
 package com.fsck.k9.activity;
 
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -109,6 +112,9 @@ import com.fsck.k9.mail.internet.MimeUtility;
 import com.fsck.k9.mail.internet.TextBody;
 import com.fsck.k9.mail.store.LocalStore;
 import com.fsck.k9.mail.store.LocalStore.LocalAttachmentBody;
+import com.fsck.k9.mail.store.LocalStore.LocalAttachmentBodyPart;
+import com.fsck.k9.mail.store.LocalStore.LocalMessage;
+import com.fsck.k9.provider.AttachmentProvider;
 import com.fsck.k9.view.MessageWebView;
 
 public class MessageCompose extends K9Activity implements OnClickListener, OnFocusChangeListener {
@@ -188,6 +194,11 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 
 
     private Contacts mContacts;
+    
+    /**
+     * This identify if need to encrypt mail
+     */
+    private boolean encryptEnabled;
 
     /**
      * This identity's settings are used for message composition.
@@ -385,6 +396,28 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         public long size;
         public Uri uri;
     }
+    
+    class BodyAttachment implements Serializable{
+		private static final long serialVersionUID = 3580482109220961359L;
+    	private String aesKey;
+    	private Attachment att;
+    	public BodyAttachment(String aesKey, Attachment att){
+    		this.aesKey = aesKey;
+    		this.att = att;
+    	}
+		public String getAesKey() {
+			return aesKey;
+		}
+		public void setAesKey(String aesKey) {
+			this.aesKey = aesKey;
+		}
+		public Attachment getAtt() {
+			return att;
+		}
+		public void setAtt(Attachment att) {
+			this.att = att;
+		}
+    }
 
     /**
      * Compose a new message using the given account. If account is null the default account
@@ -520,9 +553,12 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         mCryptStatus = (TextView) findViewById(R.id.crypt_status);
         if(mAccount.hasReg()){
         	mCryptStatus.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_lock));
+        	encryptEnabled = true;
         }else{
         	mCryptStatus.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_unlock));
+        	encryptEnabled = false;
         }
+        mCryptStatus.setOnClickListener(new CryptStatusClickListener());
         
         mAddToFromContacts = (ImageButton) findViewById(R.id.add_to);
         mAddCcFromContacts = (ImageButton) findViewById(R.id.add_cc);
@@ -841,7 +877,22 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 
         updateMessageFormat();
     }
+    
+    private class CryptStatusClickListener implements OnClickListener{
 
+		@Override
+		public void onClick(View v) {
+			if(encryptEnabled){
+				mCryptStatus.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_unlock));
+	        	encryptEnabled = false;
+			}else{
+	        	mCryptStatus.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_lock));
+	        	encryptEnabled = true;
+			}
+		}
+    	
+    }
+    
     /**
      * Handle external intents that trigger the message compose activity.
      *
@@ -1171,10 +1222,17 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
      * appended and HTML separators between composed text and quoted text are not added.
      * @param isDraft If we should build a message that will be saved as a draft (as opposed to sent).
      */
-    private TextBody buildText(boolean isDraft, String aeskey) {
-        return buildText(isDraft, mMessageFormat, aeskey);
+//    private TextBody buildText(boolean isDraft, String aeskey) {
+//        return buildText(isDraft, mMessageFormat, aeskey);
+//    }
+    
+    private TextBody buildText(boolean isDraft, String aeskey, List<BodyAttachment> attList) {
+        return buildText(isDraft, mMessageFormat, aeskey, attList);
     }
 
+//    private TextBody buildText(boolean isDraft, SimpleMessageFormat messageFormat, String aeskey) {
+//    	return this.buildText(isDraft, messageFormat, aeskey, attList);
+//    }
     /**
      * Build the {@link Body} that will contain the text of the message.
      *
@@ -1192,7 +1250,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
      * @return {@link TextBody} instance that contains the entered text and possibly the quoted
      *         original message.
      */
-    private TextBody buildText(boolean isDraft, SimpleMessageFormat messageFormat, String aeskey) {
+    private TextBody buildText(boolean isDraft, SimpleMessageFormat messageFormat, String aeskey, List<BodyAttachment> attList) {
         // The length of the formatted version of the user-supplied text/reply
         int composedMessageLength;
 
@@ -1315,10 +1373,11 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
                 }
             }
         }
-        if(mAccount.hasReg() && !isDraft && aeskey != null){
+        if(encryptEnabled && !isDraft && aeskey != null){
         	try {
-        		Uri message = getMessageTextBodyUri(text);
-        		addAttachment(message);
+        		Uri msgUri = getMessageTextBodyUri(text);
+        		Attachment att = this.buildAttachement(msgUri, null);
+        		attList.add(new BodyAttachment(aeskey, att));
         		text = getBaseContext().getString(R.string.encrypt_mail_body_message);
 			} catch (CryptorException e) {
 				e.printStackTrace();
@@ -1368,9 +1427,14 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             message.setReferences(mReferences);
         }
         List<AESKEYObject> aesKeys = null;
-        if(mAccount.hasReg()){
+        String bodyAeskey = null;
+        AESKEYObject bodyAESObj = null;
+        List<BodyAttachment> bodyAttList = new ArrayList<BodyAttachment>();
+        if(encryptEnabled && !isDraft){
 	        aesKeys = genernateAESKeys(mAttachments.getChildCount() + 1);
-	        PostResult pr = HttpPostService.postSendEmail(mIdentity.getEmail(), message.getHeader("To")[0], mAccount.getmRegPassword(), mAccount.getmRegcode(), aesKeys);
+	        Address[] toAdd = getRecipientAddresses();
+	        String to = Address.toAddressString(toAdd);
+	        PostResult pr = HttpPostService.postSendEmail(mIdentity.getEmail(), to, mAccount.getmRegPassword(), mAccount.getmRegcode(), aesKeys);
 	        if(!pr.isSuccess()){
 	        	throw new CryptorException("Apply crypt email failed!");
 	        }
@@ -1378,9 +1442,9 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 	        	AESKEYObject aeskey = aesKeys.get(i);
 	        	message.addHeader("secmail-uuid"+(i+1), aeskey.getUuid());
 	        }
+	        bodyAESObj = aesKeys != null ? aesKeys.get(mAttachments.getChildCount()) : null;
+	        bodyAeskey = bodyAESObj != null ? bodyAESObj.getAesKey() : null;
         }
-        AESKEYObject bodyAESObj = aesKeys != null ? aesKeys.get(mAttachments.getChildCount()) : null;
-        String bodyAeskey = bodyAESObj != null ? bodyAESObj.getAesKey() : null;
         // Build the body.
         // TODO FIXME - body can be either an HTML or Text part, depending on whether we're in
         // HTML mode or not.  Should probably fix this so we don't mix up html and text parts.
@@ -1389,13 +1453,13 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             String text = mPgpData.getEncryptedData();
             body = new TextBody(text);
         } else {
-            body = buildText(isDraft, bodyAeskey);
+            body = buildText(isDraft, bodyAeskey, bodyAttList);
         }
 
         // text/plain part when mMessageFormat == MessageFormat.HTML
         TextBody bodyPlain = null;
 
-        final boolean hasAttachments = mAttachments.getChildCount() > 0;
+        final boolean hasAttachments = mAttachments.getChildCount() > 0 || bodyAttList.size() > 0;
         if (mMessageFormat == SimpleMessageFormat.HTML) {
             // HTML message (with alternative text part)
 
@@ -1403,7 +1467,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             MimeMultipart composedMimeMessage = new MimeMultipart();
             composedMimeMessage.setSubType("alternative");   // Let the receiver select either the text or the HTML part.
             composedMimeMessage.addBodyPart(new MimeBodyPart(body, "text/html"));
-            bodyPlain = buildText(isDraft, SimpleMessageFormat.TEXT, bodyAeskey);
+            bodyPlain = buildText(isDraft, SimpleMessageFormat.TEXT, bodyAeskey, bodyAttList);
             if(bodyAeskey != null){
             	aesKeys.add(bodyAESObj);
             	message.addHeader("secmail-uuid"+(aesKeys.size()), bodyAESObj.getUuid());
@@ -1418,6 +1482,10 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
                 MimeMultipart mp = new MimeMultipart();
                 mp.addBodyPart(new MimeBodyPart(composedMimeMessage));
                 addAttachmentsToMessage(mp, aesKeys);
+                for(int i=0; i<bodyAttList.size(); i++){
+                	BodyAttachment bodyAtt = bodyAttList.get(i);
+                	this.addAttachementToMessage(mp, bodyAtt.getAtt(), bodyAtt.getAesKey());
+                }
                 message.setBody(mp);
             } else {
                 // If no attachments, our multipart/alternative part is the only one we need.
@@ -1429,13 +1497,17 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
                 MimeMultipart mp = new MimeMultipart();
                 mp.addBodyPart(new MimeBodyPart(body, "text/plain"));
                 addAttachmentsToMessage(mp, aesKeys);
+                for(int i=0; i<bodyAttList.size(); i++){
+                	BodyAttachment bodyAtt = bodyAttList.get(i);
+                	this.addAttachementToMessage(mp, bodyAtt.getAtt(), bodyAtt.getAesKey());
+                }
                 message.setBody(mp);
             } else {
                 // No attachments to include, just stick the text body in the message and call it good.
                 message.setBody(body);
             }
         }
-
+        message.setHeader("bodyAttachmentCount", ""+bodyAttList.size());
         // If this is a draft, add metadata for thawing.
         if (isDraft) {
             // Add the identity to the message.
@@ -1487,9 +1559,13 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
     private void addAttachmentsToMessage(final MimeMultipart mp, List<AESKEYObject> aesKeys) throws MessagingException {
         for (int i = 0, count = mAttachments.getChildCount(); i < count; i++) {
             Attachment attachment = (Attachment) mAttachments.getChildAt(i).getTag();
-
-            MimeBodyPart bp = new MimeBodyPart(
-                new LocalStore.LocalAttachmentBody(attachment.uri, getApplication(), aesKeys != null ? aesKeys.get(i).getAesKey() : null));
+            this.addAttachementToMessage(mp, attachment, aesKeys != null ? aesKeys.get(i).getAesKey() : null);
+        }
+    }
+    
+    private void addAttachementToMessage(final MimeMultipart mp, Attachment attachment, String aesKey) throws MessagingException{
+    	MimeBodyPart bp = new MimeBodyPart(
+                new LocalStore.LocalAttachmentBody(attachment.uri, getApplication(), aesKey));
 //            		new LocalStore.LocalAttachmentBody(attachment.uri, getApplication(), "xxx"));
 
             /*
@@ -1524,7 +1600,6 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
                              attachment.name, attachment.size));
 
             mp.addBodyPart(bp);
-        }
     }
 
     // FYI, there's nothing in the code that requires these variables to one letter. They're one
@@ -1815,7 +1890,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         }
         if (mPgpData.hasEncryptionKeys() || mPgpData.hasSignatureKey()) {
             if (mPgpData.getEncryptedData() == null) {
-                String text = buildText(false, null).getText();
+                String text = buildText(false, null, null).getText();
                 mPreventDraftSaving = true;
                 if (!crypto.encrypt(this, text, mPgpData)) {
                     mPreventDraftSaving = false;
@@ -1913,6 +1988,19 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
     }
 
     private void addAttachment(Uri uri, String contentType) {
+        Attachment attachment = this.buildAttachement(uri, contentType);
+
+        View view = getLayoutInflater().inflate(R.layout.message_compose_attachment, mAttachments, false);
+        TextView nameView = (TextView)view.findViewById(R.id.attachment_name);
+        ImageButton delete = (ImageButton)view.findViewById(R.id.attachment_delete);
+        nameView.setText(attachment.name);
+        delete.setOnClickListener(this);
+        delete.setTag(view);
+        view.setTag(attachment);
+        mAttachments.addView(view);
+    }
+    
+    private Attachment buildAttachement(Uri uri, String contentType){
         long size = -1;
         String name = null;
 
@@ -1967,15 +2055,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         attachment.contentType = usableContentType;
         attachment.name = name;
         attachment.size = size;
-
-        View view = getLayoutInflater().inflate(R.layout.message_compose_attachment, mAttachments, false);
-        TextView nameView = (TextView)view.findViewById(R.id.attachment_name);
-        ImageButton delete = (ImageButton)view.findViewById(R.id.attachment_delete);
-        nameView.setText(attachment.name);
-        delete.setOnClickListener(this);
-        delete.setTag(view);
-        view.setTag(attachment);
-        mAttachments.addView(view);
+        return attachment;
     }
 
     @Override
@@ -2400,24 +2480,34 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
      * @throws MessagingException
      *          In case of an error
      */
-    private boolean loadAttachments(Part part, int depth) throws MessagingException {
+    private boolean loadAttachments(Part part, int depth, List<String> aesKeyList, int j) throws MessagingException {
         if (part.getBody() instanceof Multipart) {
             Multipart mp = (Multipart) part.getBody();
             boolean ret = true;
+            int k = 0;
             for (int i = 0, count = mp.getCount(); i < count; i++) {
-                if (!loadAttachments(mp.getBodyPart(i), depth + 1)) {
+                if (!loadAttachments(mp.getBodyPart(i), depth + 1, aesKeyList, k)) {
                     ret = false;
+                }
+                if(mp.getBodyPart(i) instanceof LocalStore.LocalAttachmentBodyPart){
+                	k++;
                 }
             }
             return ret;
         }
-
+        String aeskey = null;
+        if (part instanceof LocalStore.LocalAttachmentBodyPart) {
+        	aeskey = aesKeyList != null ? aesKeyList.get(j) : null;
+        }
         String contentType = MimeUtility.unfoldAndDecode(part.getContentType());
         String name = MimeUtility.getHeaderParameter(contentType, "name");
         if (name != null) {
+        	if(name.startsWith("mbdy") && name.endsWith(".txt"))
+        		return false;
             Body body = part.getBody();
             if (body != null && body instanceof LocalAttachmentBody) {
-                final Uri uri = ((LocalAttachmentBody) body).getContentUri();
+                Uri _uri = ((LocalAttachmentBody) body).getContentUri();
+                final Uri uri = decryptAttachement(_uri, name, aeskey);
                 mHandler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -2429,6 +2519,31 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             }
         }
         return true;
+    }
+    
+    private Uri decryptAttachement(Uri uri, String name, String aeskey){
+    	if(aeskey == null)
+    		return uri;
+    	try {
+            File file = Utility.createUniqueFile(new File(K9.getAttachmentDefaultPath()), name);
+            InputStream in = getContentResolver().openInputStream(uri);
+            OutputStream out = new FileOutputStream(file);
+            try {
+        		AesCryptor crypt = new AesCryptor(aeskey);
+        		crypt.decrypt(in, out);
+			} catch (CryptorException e) {
+				Log.e(K9.LOG_TAG, "Error Decrypt email attachement.", e);
+			} 
+            out.flush();
+            out.close();
+            in.close();
+            return Uri.fromFile(file);
+        } catch (IOException ioe) {
+            if (K9.DEBUG) {
+                Log.e(K9.LOG_TAG, "Error Decrypt email attachement.", ioe);
+            }
+        }
+    	return null;
     }
 
     /**
@@ -2595,7 +2710,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         populateUIWithQuotedMessage(true);
 
         if (!mSourceMessageProcessed) {
-            if (!loadAttachments(message, 0)) {
+            if (!loadAttachments(message, 0, getAesKeyList((LocalMessage)message), 0)) {
                 mHandler.sendEmptyMessage(MSG_SKIPPED_ATTACHMENTS);
             }
         }
@@ -2637,7 +2752,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         }
 
         if (!mSourceMessageProcessed) {
-            loadAttachments(message, 0);
+            loadAttachments(message, 0, null, 0);
         }
 
         // Decode the identity header when loading a draft.
@@ -3004,6 +3119,12 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
      */
     private String getBodyTextFromMessage(final Message message, final SimpleMessageFormat format)
             throws MessagingException {
+    	LocalMessage _message = (LocalMessage) message;
+    	List<String> aesKeyList = getAesKeyList(_message);
+    	if(!aesKeyList.isEmpty()){
+    		//decrypt message body
+    		return getDecryptMessageBody(_message, aesKeyList);
+    	}
         Part part;
         if (format == SimpleMessageFormat.HTML) {
             // HTML takes precedence, then text.
@@ -3040,6 +3161,75 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         // If we had nothing interesting, return an empty string.
         return "";
     }
+    
+    private List<String> getAesKeyList(LocalMessage message){
+    	List<String> aesKeyList = null;
+    	Map<String, String> cryptUuidMap = message.getCryptUUIDMap();
+        if(cryptUuidMap != null && !cryptUuidMap.isEmpty()){
+        	List<String> keys = new ArrayList<String>(cryptUuidMap.keySet());
+        	Collections.sort(keys);
+        	List<String> uuidList = new ArrayList<String>();
+        	for(String key : keys){
+        		uuidList.add(cryptUuidMap.get(key));
+        	}
+        	aesKeyList = HttpPostService.postReceiveEmail(mAccount.getEmail(), mAccount.getmRegPassword(), mAccount.getmRegcode(), uuidList);
+        }
+        return aesKeyList;
+    }
+    
+    private String getDecryptMessageBody(LocalMessage message, List<String> aesKeyList) throws MessagingException {
+		String text = "";
+		if (message.getBody() instanceof Multipart) {
+			Multipart mp = (Multipart) message.getBody();
+			int k = 0;
+			String aeskey = null;
+			for (int i = 0; i < mp.getCount(); i++) {
+				Part _part = mp.getBodyPart(i);
+				if (_part instanceof LocalStore.LocalAttachmentBodyPart) {
+					aeskey = aesKeyList != null ? aesKeyList.get(k) : null;
+					LocalAttachmentBodyPart part = (LocalAttachmentBodyPart) _part;
+			        boolean isMailBody = isMailBody(part);
+
+			        if(aeskey != null && isMailBody){
+						 Uri uri = AttachmentProvider.getAttachmentUri(mAccount, part.getAttachmentId());
+				         try {
+							InputStream in = getContentResolver().openInputStream(uri);
+							OutputStream out = new ByteArrayOutputStream();
+							try {
+			            		AesCryptor crypt = new AesCryptor(aeskey);
+			            		crypt.decrypt(in, out);
+							} catch (CryptorException e) {
+								e.printStackTrace();
+							}  
+							text = out.toString();
+							out.flush();
+				            out.close();
+				            in.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}finally{
+							
+						}
+					}
+			        k++;
+				}
+			}
+		}
+		return text;
+    }
+    
+    private boolean isMailBody(LocalAttachmentBodyPart part) throws MessagingException{
+		String contentType = MimeUtility.unfoldAndDecode(part.getContentType());
+        String contentDisposition = MimeUtility.unfoldAndDecode(part.getDisposition());
+
+        String name = MimeUtility.getHeaderParameter(contentType, "name");
+        if (name == null) {
+            name = MimeUtility.getHeaderParameter(contentDisposition, "filename");
+        }
+        return name == null ? false : name.startsWith("mbdy") && name.endsWith(".txt");
+    }
+    
+    
 
     // Regular expressions to look for various HTML tags. This is no HTML::Parser, but hopefully it's good enough for
     // our purposes.

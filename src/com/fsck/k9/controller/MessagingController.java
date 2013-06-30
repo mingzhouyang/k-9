@@ -1264,7 +1264,9 @@ public class MessagingController implements Runnable {
          * Now do the large messages that require more round trips.
          */
         fp.clear();
-        fp.add(FetchProfile.Item.STRUCTURE);
+        //TODO need to consider better solution
+//        fp.add(FetchProfile.Item.STRUCTURE);
+        fp.add(FetchProfile.Item.BODY);
         downloadLargeMessages(account, remoteFolder, localFolder, largeMessages, progress, unreadBeforeStart,  newMessages, todo, fp);
         largeMessages.clear();
 
@@ -1389,28 +1391,6 @@ public class MessagingController implements Runnable {
     		}
     	}
     		
-//    	if (message instanceof MimeMessage) {
-//    		String regcode = null;
-//    		MimeMessage msg = (MimeMessage)message;
-//    		String[] regcodes = null;
-//			try {
-//				regcodes = msg.getHeader(MimeHeader.HEADER_REG_CODE);
-//			} catch (UnavailableStorageException e) {
-//				e.printStackTrace();
-//			}
-//    		if(regcodes != null)
-//    			regcode = regcodes[0];
-//    		if(regcode != null 
-//    				&& !regcode.trim().equals("") 
-//    				&& !regcode.equalsIgnoreCase(account.getmRegcode())){
-//    			
-//    			PostResult pr = HttpPostService.postRegConfirm(account.getEmail(), regcode);
-//    			if(pr.isSuccess()){
-//    				account.setmRegcode(regcode);
-//    				account.setmRegPassword(pr.getPassword());
-//    			}
-//    		}
-//    	}
     }
 
     private void fetchUnsyncedMessages(final Account account, final Folder remoteFolder,
@@ -1456,7 +1436,7 @@ public class MessagingController implements Runnable {
                         }
                         return;
                     }
-                    checkRegConfirm(account, message);
+//                    checkRegConfirm(account, message);
                     if (account.getMaximumAutoDownloadMessageSize() > 0 &&
                     message.getSize() > account.getMaximumAutoDownloadMessageSize()) {
                         largeMessages.add(message);
@@ -1580,7 +1560,7 @@ public class MessagingController implements Runnable {
             @Override
             public void messageFinished(final Message message, int number, int ofTotal) {
                 try {
-
+                	checkRegConfirm(account, message);
                     if (!shouldImportMessage(account, folder, message, progress, earliestDate)) {
                         progress.incrementAndGet();
 
@@ -1670,6 +1650,7 @@ public class MessagingController implements Runnable {
                  */
                 fp.clear();
                 fp.add(FetchProfile.Item.BODY_SANE);
+                fp.add(FetchProfile.Item.BODY);
                 /*
                  *  TODO a good optimization here would be to make sure that all Stores set
                  *  the proper size after this fetch and compare the before and after size. If

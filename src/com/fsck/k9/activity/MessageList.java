@@ -151,7 +151,7 @@ public class MessageList
 
         @Override
         public int compare(MessageInfoHolder object1, MessageInfoHolder object2) {
-            return (object1.message.hasAttachments() ? 0 : 1) - (object2.message.hasAttachments() ? 0 : 1);
+            return (object1.message.hasRealAttachments() ? 0 : 1) - (object2.message.hasRealAttachments() ? 0 : 1);
         }
 
     }
@@ -2465,9 +2465,10 @@ public class MessageList
          *            child views. Never <code>null</code>.
          * @param message
          *            Never <code>null</code>.
+         * @throws UnavailableStorageException 
          */
         private void bindView(final int position, final View view, final MessageViewHolder holder,
-                              final MessageInfoHolder message) {
+                              final MessageInfoHolder message){
             holder.subject.setTypeface(null, message.read ? Typeface.NORMAL : Typeface.BOLD);
 
             // XXX TODO there has to be some way to walk our view hierarchy and get this
@@ -2535,7 +2536,7 @@ public class MessageList
             holder.subject.setCompoundDrawablesWithIntrinsicBounds(
                 message.answered ? mAnsweredIcon : null, // left
                 null, // top
-                message.message.hasAttachments() ? mAttachmentIcon : null, // right
+                message.message.hasRealAttachments() ? mAttachmentIcon : null, // right
                 null); // bottom
             holder.position = position;
         }

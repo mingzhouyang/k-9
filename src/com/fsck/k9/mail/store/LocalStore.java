@@ -54,6 +54,7 @@ import com.fsck.k9.mail.FetchProfile;
 import com.fsck.k9.mail.Flag;
 import com.fsck.k9.mail.Folder;
 import com.fsck.k9.mail.Message;
+import com.fsck.k9.mail.Multipart;
 import com.fsck.k9.mail.Message.RecipientType;
 import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Part;
@@ -3087,6 +3088,20 @@ public class LocalStore extends Store implements Serializable {
             mMessageId = messageId;
             mMessageDirty = true;
         }
+        
+        public boolean hasRealAttachments(){
+        	String[] bac = null;
+			try {
+				bac = getHeader("bodyAttachmentCount");
+			} catch (UnavailableStorageException e) {
+				e.printStackTrace();
+			}
+        	int k = 0;
+        	if(bac != null && bac.length >0){
+        		k = Integer.parseInt(bac[0]);
+            } 
+        	return mAttachmentCount - k >0;
+        }
 
         public boolean hasAttachments() {
             if (mAttachmentCount > 0) {
@@ -3102,7 +3117,7 @@ public class LocalStore extends Store implements Serializable {
         }
         
         public void decreaseAttachmentCount(){
-        	mAttachmentCount -= mAttachmentCount;
+        	mAttachmentCount -= 1;
         }
 
         @Override

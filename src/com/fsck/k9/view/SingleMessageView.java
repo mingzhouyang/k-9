@@ -710,6 +710,7 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
                 if (view.populateFromPart(part, message, account, controller, listener, aesKeyList != null ? aesKeyList.get(j) : null)) {
                 	if(view.isMailBody()){
                 		text = view.getMailBody();
+                		message.decreaseAttachmentCount();
                 	}else{
                 		addAttachment(view);
                 	}
