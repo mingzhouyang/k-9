@@ -2380,6 +2380,7 @@ public class MessageList
                 holder.preview = (TextView) view.findViewById(R.id.preview);
                 holder.selected = (CheckBox) view.findViewById(R.id.selected_checkbox);
                 holder.flagged = (CheckBox) view.findViewById(R.id.flagged);
+                holder.encrypt_status = (TextView) view.findViewById(R.id.encrypt_status);
 
                 holder.flagged.setOnClickListener(flagClickListener);
 
@@ -2531,11 +2532,17 @@ public class MessageList
 
                 holder.from.setTypeface(null, senderTypeface);
             }
-
+            if(message.message.isEncrypt()){
+            	holder.encrypt_status.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_lock_min));
+            	holder.from.setText(getString(R.string.encrypt_mail_encrypted));
+            }else{
+            	holder.encrypt_status.setVisibility(View.GONE);
+            }
             holder.date.setText(message.getDate(mMessageHelper));
             holder.subject.setCompoundDrawablesWithIntrinsicBounds(
                 message.answered ? mAnsweredIcon : null, // left
-                null, // top
+//                message.message.isEncrypt() ? mLockIcon : mUnlockIcon, // top
+                null, 
                 message.message.hasRealAttachments() ? mAttachmentIcon : null, // right
                 null); // bottom
             holder.position = position;
@@ -2570,7 +2577,8 @@ public class MessageList
 
     class MessageViewHolder
         implements OnCheckedChangeListener {
-        public TextView subject;
+        public TextView encrypt_status;
+		public TextView subject;
         public TextView preview;
         public TextView from;
         public TextView time;

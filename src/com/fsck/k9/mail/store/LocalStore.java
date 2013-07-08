@@ -3111,6 +3111,16 @@ public class LocalStore extends Store implements Serializable {
             }
 
         }
+        
+        public boolean isEncrypt(){
+        	try {
+				getHeaderNames();
+			} catch (UnavailableStorageException e) {
+				e.printStackTrace();
+			}
+        	Map<String, String> cryptUuidMap = getCryptUUIDMap();
+            return cryptUuidMap != null && !cryptUuidMap.isEmpty();
+        }
 
         public int getAttachmentCount() {
             return mAttachmentCount;

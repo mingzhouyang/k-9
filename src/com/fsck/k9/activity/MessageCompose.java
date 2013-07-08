@@ -554,11 +554,11 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         if(mAccount.hasReg()){
         	mCryptStatus.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_lock));
         	encryptEnabled = true;
+        	mCryptStatus.setOnClickListener(new CryptStatusClickListener());
         }else{
         	mCryptStatus.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_unlock));
         	encryptEnabled = false;
         }
-        mCryptStatus.setOnClickListener(new CryptStatusClickListener());
         
         mAddToFromContacts = (ImageButton) findViewById(R.id.add_to);
         mAddCcFromContacts = (ImageButton) findViewById(R.id.add_cc);
@@ -1226,8 +1226,8 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 //        return buildText(isDraft, mMessageFormat, aeskey);
 //    }
     
-    private TextBody buildText(boolean isDraft, String aeskey, List<BodyAttachment> attList) {
-        return buildText(isDraft, mMessageFormat, aeskey, attList);
+    private TextBody buildText(boolean isDraft, String aeskey, List<BodyAttachment> attList, File file) {
+        return buildText(isDraft, mMessageFormat, aeskey, attList, file);
     }
 
 //    private TextBody buildText(boolean isDraft, SimpleMessageFormat messageFormat, String aeskey) {
@@ -1250,7 +1250,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
      * @return {@link TextBody} instance that contains the entered text and possibly the quoted
      *         original message.
      */
-    private TextBody buildText(boolean isDraft, SimpleMessageFormat messageFormat, String aeskey, List<BodyAttachment> attList) {
+    private TextBody buildText(boolean isDraft, SimpleMessageFormat messageFormat, String aeskey, List<BodyAttachment> attList, File file) {
         // The length of the formatted version of the user-supplied text/reply
         int composedMessageLength;
 
@@ -1373,9 +1373,9 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
                 }
             }
         }
-        if(encryptEnabled && !isDraft && aeskey != null){
+        if(encryptEnabled && !isDraft && aeskey != null && attList.isEmpty()){
         	try {
-        		Uri msgUri = getMessageTextBodyUri(text);
+        		Uri msgUri = getMessageTextBodyUri(text, file);
         		Attachment att = this.buildAttachement(msgUri, null);
         		attList.add(new BodyAttachment(aeskey, att));
         		text = getBaseContext().getString(R.string.encrypt_mail_body_message);
@@ -1430,6 +1430,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         String bodyAeskey = null;
         AESKEYObject bodyAESObj = null;
         List<BodyAttachment> bodyAttList = new ArrayList<BodyAttachment>();
+        File file = null;
         if(encryptEnabled && !isDraft){
 	        aesKeys = genernateAESKeys(mAttachments.getChildCount() + 1);
 	        Address[] toAdd = getRecipientAddresses();
@@ -1444,6 +1445,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 	        }
 	        bodyAESObj = aesKeys != null ? aesKeys.get(mAttachments.getChildCount()) : null;
 	        bodyAeskey = bodyAESObj != null ? bodyAESObj.getAesKey() : null;
+	        file = Utility.createUniqueFile(new File(K9.getAttachmentDefaultPath()), "mbdy.txt");
         }
         // Build the body.
         // TODO FIXME - body can be either an HTML or Text part, depending on whether we're in
@@ -1453,7 +1455,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             String text = mPgpData.getEncryptedData();
             body = new TextBody(text);
         } else {
-            body = buildText(isDraft, bodyAeskey, bodyAttList);
+            body = buildText(isDraft, bodyAeskey, bodyAttList, file);
         }
 
         // text/plain part when mMessageFormat == MessageFormat.HTML
@@ -1467,11 +1469,11 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             MimeMultipart composedMimeMessage = new MimeMultipart();
             composedMimeMessage.setSubType("alternative");   // Let the receiver select either the text or the HTML part.
             composedMimeMessage.addBodyPart(new MimeBodyPart(body, "text/html"));
-            bodyPlain = buildText(isDraft, SimpleMessageFormat.TEXT, bodyAeskey, bodyAttList);
-            if(bodyAeskey != null){
-            	aesKeys.add(bodyAESObj);
-            	message.addHeader("secmail-uuid"+(aesKeys.size()), bodyAESObj.getUuid());
-            }
+            bodyPlain = buildText(isDraft, SimpleMessageFormat.TEXT, bodyAeskey, bodyAttList, file);
+//            if(bodyAeskey != null){
+//            	aesKeys.add(bodyAESObj);
+//            	message.addHeader("secmail-uuid"+(aesKeys.size()), bodyAESObj.getUuid());
+//            }
             composedMimeMessage.addBodyPart(new MimeBodyPart(bodyPlain, "text/plain"));
 
             if (hasAttachments) {
@@ -1523,9 +1525,9 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
      * @return
      * @throws CryptorException
      */
-    private Uri getMessageTextBodyUri(String text) throws CryptorException{
+    private Uri getMessageTextBodyUri(String text, File file) throws CryptorException{
     	try{
-    		File file = Utility.createUniqueFile(new File(K9.getAttachmentDefaultPath()), "mbdy.txt");
+//    		File file = Utility.createUniqueFile(new File(K9.getAttachmentDefaultPath()), "mbdy.txt");
 	    	OutputStream out = new FileOutputStream(file);
 	    	IOUtils.write(text, out);
 	    	out.flush();
@@ -1890,7 +1892,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         }
         if (mPgpData.hasEncryptionKeys() || mPgpData.hasSignatureKey()) {
             if (mPgpData.getEncryptedData() == null) {
-                String text = buildText(false, null, null).getText();
+                String text = buildText(false, null, null, null).getText();
                 mPreventDraftSaving = true;
                 if (!crypto.encrypt(this, text, mPgpData)) {
                     mPreventDraftSaving = false;
@@ -3121,7 +3123,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
             throws MessagingException {
     	LocalMessage _message = (LocalMessage) message;
     	List<String> aesKeyList = getAesKeyList(_message);
-    	if(!aesKeyList.isEmpty()){
+    	if(aesKeyList != null && !aesKeyList.isEmpty()){
     		//decrypt message body
     		return getDecryptMessageBody(_message, aesKeyList);
     	}

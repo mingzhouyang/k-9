@@ -61,8 +61,19 @@
             android:orientation="horizontal" >
 
             <TextView
+	            android:id="@+id/encrypt_status"
+	            android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="left|bottom"
+                android:paddingRight="2dip"
+                android:paddingLeft="2dip"
+                android:singleLine="true"
+	            android:textColor="?android:attr/textColorSecondary"
+	            android:background="@drawable/ic_button_lock_min" />
+            
+            <TextView
                 android:id="@+id/from"
-                android:layout_width="fill_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:paddingLeft="2dip"

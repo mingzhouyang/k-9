@@ -298,6 +298,14 @@ public class MessageHeader extends ScrollView implements OnClickListener {
             hideAdditionalHeaders();
         }
     }
+    
+    public void encryptSucceed(){
+    	mcryptStatusIcon.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_email_unlock));
+    }
+    
+    public void encryptFaild(){
+    	mcryptStatusIcon.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_email_lock));
+    }
 
     public void onShowAdditionalHeaders() {
         int currentVisibility = mAdditionalHeadersView.getVisibility();

@@ -1127,4 +1127,5 @@ http://k9mail.googlecode.com/
     <string name="reg_encrypt_confirm_dialog">Apply encrypt to read this mail, continue?</string>
     <string name="encrypt_mail_failed">Failed to encrypt email before send, please try again.</string>
     <string name="encrypt_mail_body_message">You can only use K9 client to read this email.</string>
+    <string name="encrypt_mail_encrypted">Mail is encrypted.</string>
 </resources>

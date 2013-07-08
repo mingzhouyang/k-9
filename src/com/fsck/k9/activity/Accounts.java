@@ -137,6 +137,7 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
     private SearchAccount unreadAccount = null;
     private SearchAccount integratedInboxAccount = null;
     private FontSizes mFontSizes = K9.getFontSizes();
+    private BaseAccount mSelectedAccount;
 
     /**
      * Contains information about objects that need to be retained on configuration changes.
@@ -1055,12 +1056,12 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
                         new Runnable() {
                             @Override
                             public void run() {
-                            	if (mSelectedContextAccount instanceof Account) {
-                                    Account realAccount = (Account) mSelectedContextAccount;
+                            	if (mSelectedAccount instanceof Account) {
+                                    Account realAccount = (Account) mSelectedAccount;
                                     realAccount.setmRegcode(null);
                                     realAccount.setmRegPassword(null);
                                     realAccount.save(Preferences.getPreferences(Accounts.this));
-                                    mSelectedContextAccount = null;
+                                    mSelectedAccount = null;
                             	}
                             	refresh();
                             }
@@ -1823,11 +1824,13 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
     
     private class RegDecryptClickListener implements OnClickListener{
 
+    	final Account account;
     	RegDecryptClickListener(Account nAccount){
-    		mSelectedContextAccount = nAccount;
+    		account = nAccount;
     	}
 		@Override
 		public void onClick(View v) {
+			mSelectedAccount = account;
 			showDialog(DIALOG_CANCEL_REG);
 		}
     	
