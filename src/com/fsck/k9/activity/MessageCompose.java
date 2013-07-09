@@ -2499,7 +2499,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         }
         String aeskey = null;
         if (part instanceof LocalStore.LocalAttachmentBodyPart) {
-        	aeskey = aesKeyList != null ? aesKeyList.get(j) : null;
+        	aeskey = (aesKeyList != null && !aesKeyList.isEmpty()) ? aesKeyList.get(j) : null;
         }
         String contentType = MimeUtility.unfoldAndDecode(part.getContentType());
         String name = MimeUtility.getHeaderParameter(contentType, "name");
