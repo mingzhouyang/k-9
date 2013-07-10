@@ -2534,7 +2534,7 @@ public class MessageList
             }
             if(message.message.isEncrypt()){
             	holder.encrypt_status.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_lock_min));
-            	holder.from.setText(getString(R.string.encrypt_mail_encrypted));
+//            	holder.from.setText(getString(R.string.encrypt_mail_encrypted));
             }else{
             	holder.encrypt_status.setVisibility(View.GONE);
             }

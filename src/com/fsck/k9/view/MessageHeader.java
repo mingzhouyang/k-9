@@ -262,14 +262,14 @@ public class MessageHeader extends ScrollView implements OnClickListener {
         mCcView.setText(cc);
         mAnsweredIcon.setVisibility(message.isSet(Flag.ANSWERED) ? View.VISIBLE : View.GONE);
         if(mMessage instanceof LocalMessage){
-        	mcryptStatusIcon.setVisibility(View.VISIBLE);
         	LocalMessage lm = (LocalMessage)mMessage;
         	lm.getHeaderNames();
         	Map<String, String> cryptUuidMap = lm.getCryptUUIDMap();
             if(cryptUuidMap != null && !cryptUuidMap.isEmpty()){
+            	mcryptStatusIcon.setVisibility(View.VISIBLE);
             	mcryptStatusIcon.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_email_lock));  
             }else{
-            	mcryptStatusIcon.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_email_unlock));
+            	mcryptStatusIcon.setVisibility(View.GONE);
             }
             
         }else{
@@ -297,14 +297,6 @@ public class MessageHeader extends ScrollView implements OnClickListener {
         } else {
             hideAdditionalHeaders();
         }
-    }
-    
-    public void encryptSucceed(){
-    	mcryptStatusIcon.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_email_unlock));
-    }
-    
-    public void encryptFaild(){
-    	mcryptStatusIcon.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_email_lock));
     }
 
     public void onShowAdditionalHeaders() {
