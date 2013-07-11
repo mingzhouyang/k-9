@@ -169,7 +169,6 @@ public class HttpPostService {
 				try {
 					AesCryptor crypt = new AesCryptor(pwd);
 					key = crypt.encrypt(aesKey.getAesKey());
-	//				key = AESEncryptor.encrypt(aesKey.getAesKey(), pwd);
 				} catch (CryptorException e) {
 					return new PostResult();
 				}
@@ -215,7 +214,6 @@ public class HttpPostService {
 						try {
 							AesCryptor crypt = new AesCryptor(passwd + h.SHA256(uuidList.get(i)));
 							aesKeyList.add(crypt.decrypt(fromUuid));
-	//						aesKeyList.add(AESEncryptor.decrypt(fromUuid, passwd + HashIDGenerator.SHA256(uuidList.get(i))));
 						} catch (CryptorException e) {
 							e.printStackTrace();
 						}
