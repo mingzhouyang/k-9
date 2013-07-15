@@ -115,7 +115,7 @@ public class LocalStore extends Store implements Serializable {
      */
     static private String GET_MESSAGES_COLS =
         "subject, sender_list, date, uid, flags, id, to_list, cc_list, "
-        + "bcc_list, reply_to_list, attachment_count, internal_date, message_id, folder_id, preview ";
+        + "bcc_list, reply_to_list, attachment_count, internal_date, message_id, folder_id, preview, encry_status ";
 
 
     static private String GET_FOLDER_COLS = "id, name, unread_count, visible_limit, last_updated, status, push_state, last_pushed, flagged_count, integrate, top_group, poll_class, push_class, display_class";
@@ -188,7 +188,7 @@ public class LocalStore extends Store implements Serializable {
                         db.execSQL("CREATE TABLE messages (id INTEGER PRIMARY KEY, deleted INTEGER default 0, folder_id INTEGER, uid TEXT, subject TEXT, "
                                    + "date INTEGER, flags TEXT, sender_list TEXT, to_list TEXT, cc_list TEXT, bcc_list TEXT, reply_to_list TEXT, "
                                    + "html_content TEXT, text_content TEXT, attachment_count INTEGER, internal_date INTEGER, message_id TEXT, preview TEXT, "
-                                   + "mime_type TEXT)");
+                                   + "mime_type TEXT, encry_status TEXT)");
 
                         db.execSQL("DROP TABLE IF EXISTS headers");
                         db.execSQL("CREATE TABLE headers (id INTEGER PRIMARY KEY, message_id INTEGER, name TEXT, value TEXT)");
@@ -2039,7 +2039,7 @@ public class LocalStore extends Store implements Serializable {
                 @Override
                 public Message doDbWork(final SQLiteDatabase db) throws WrappedException, UnavailableStorageException {
                     try {
-                        appendMessages(new Message[] { message });
+                        appendMessages(new Message[] { message }, true);
                         final String uid = message.getUid();
                         final Message result = getMessage(uid);
                         runnable.run();
@@ -2207,7 +2207,9 @@ public class LocalStore extends Store implements Serializable {
                                     cv.put("internal_date",  message.getInternalDate() == null
                                            ? System.currentTimeMillis() : message.getInternalDate().getTime());
                                     cv.put("mime_type", message.getMimeType());
-
+                                    if(receive){
+                                    	cv.put("encry_status", ((MimeMessage)message).getCryptUUIDMap().isEmpty() ? "N" : "Y");
+                                    }
                                     String messageId = message.getMessageId();
                                     if (messageId != null) {
                                         cv.put("message_id", messageId);
@@ -2957,6 +2959,7 @@ public class LocalStore extends Store implements Serializable {
 
         private boolean mHeadersLoaded = false;
         private boolean mMessageDirty = false;
+        private boolean isEncry = false;
 
         public LocalMessage() {
         }
@@ -3011,6 +3014,8 @@ public class LocalStore extends Store implements Serializable {
                 f.open(LocalFolder.OpenMode.READ_WRITE);
                 this.mFolder = f;
             }
+            String encry_status = cursor.getString(15);
+            this.setEncry(encry_status != null && "Y".equalsIgnoreCase(encry_status));
         }
 
         /**
@@ -3075,8 +3080,15 @@ public class LocalStore extends Store implements Serializable {
             return mSubject;
         }
 
+        public boolean isEncry() {
+			return isEncry;
+		}
 
-        @Override
+		public void setEncry(boolean isEncry) {
+			this.isEncry = isEncry;
+		}
+
+		@Override
         public void setSubject(String subject) throws MessagingException {
             mSubject = subject;
             mMessageDirty = true;
@@ -3112,16 +3124,6 @@ public class LocalStore extends Store implements Serializable {
 
         }
         
-        public boolean isEncrypt(){
-        	try {
-				getHeaderNames();
-			} catch (UnavailableStorageException e) {
-				e.printStackTrace();
-			}
-        	Map<String, String> cryptUuidMap = getCryptUUIDMap();
-            return cryptUuidMap != null && !cryptUuidMap.isEmpty();
-        }
-
         public int getAttachmentCount() {
             return mAttachmentCount;
         }
