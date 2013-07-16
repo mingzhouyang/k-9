@@ -2532,12 +2532,14 @@ public class MessageList
 
                 holder.from.setTypeface(null, senderTypeface);
             }
-            if(message.message.isEncry()){
-            	holder.encrypt_status.setVisibility(View.VISIBLE);
-            	holder.encrypt_status.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_lock_min));
-//            	holder.from.setText(getString(R.string.encrypt_mail_encrypted));
-            }else{
-            	holder.encrypt_status.setVisibility(View.GONE);
+            if(holder.encrypt_status != null){
+	            if(message.message.isEncry()){
+	            	holder.encrypt_status.setVisibility(View.VISIBLE);
+	            	holder.encrypt_status.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_lock_min));
+	//            	holder.from.setText(getString(R.string.encrypt_mail_encrypted));
+	            }else{
+	            	holder.encrypt_status.setVisibility(View.GONE);
+	            }
             }
             holder.date.setText(message.getDate(mMessageHelper));
             holder.subject.setCompoundDrawablesWithIntrinsicBounds(

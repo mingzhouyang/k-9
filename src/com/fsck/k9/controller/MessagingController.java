@@ -1701,7 +1701,7 @@ public class MessagingController implements Runnable {
                     remoteFolder.fetchPart(message, part, null);
                 }
                 // Store the updated message locally
-                localFolder.appendMessages(new Message[] { message });
+                localFolder.appendMessages(new Message[] { message }, true);
 
                 Message localMessage = localFolder.getMessage(message.getUid());
 
