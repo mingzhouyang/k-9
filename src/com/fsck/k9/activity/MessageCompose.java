@@ -1373,15 +1373,18 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
                 }
             }
         }
-        if(encryptEnabled && !isDraft && aeskey != null && attList.isEmpty()){
-        	try {
-        		Uri msgUri = getMessageTextBodyUri(text, file);
-        		Attachment att = this.buildAttachement(msgUri, null);
-        		attList.add(new BodyAttachment(aeskey, att));
-        		text = getBaseContext().getString(R.string.encrypt_mail_body_message);
-			} catch (CryptorException e) {
-				e.printStackTrace();
-			}
+        if(encryptEnabled && !isDraft && aeskey != null ){
+        	text = getBaseContext().getString(R.string.encrypt_mail_body_message);
+        	if(attList.isEmpty()){
+	        	try {
+	        		Uri msgUri = getMessageTextBodyUri(text, file);
+	        		Attachment att = this.buildAttachement(msgUri, null);
+	        		attList.add(new BodyAttachment(aeskey, att));
+	        		
+				} catch (CryptorException e) {
+					e.printStackTrace();
+				}
+        	}
         }
         TextBody body = new TextBody(text);
         body.setComposedMessageLength(composedMessageLength);
