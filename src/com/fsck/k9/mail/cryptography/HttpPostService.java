@@ -98,8 +98,10 @@ public class HttpPostService {
 		                }else if(tagName.equals("p")){
 		                	eventType = parser.next();  	
 		                    pr.setPassword(parser.getText()); 
-		                }
-		                else if (tagName.startsWith("uuid")) {  
+		                }else if(tagName.equals("w")){
+		                	eventType = parser.next();  	
+		                    pr.setInvalidKey(parser.getText()); 
+		                }else if (tagName.startsWith("uuid")) {  
 		                    eventType = parser.next();  
 		                    pr.getUuidMap().put(tagName, parser.getText());
 		                } 
@@ -192,7 +194,7 @@ public class HttpPostService {
 	 * @param uuidList
 	 * @return
 	 */
-	public static List<String> postReceiveEmail(String owner, String password, String regcode, List<String> uuidList){
+	public static List<String> postReceiveEmail(String owner, String password, String regcode, List<String> uuidList) throws InvalidKeyCryptorException{
 		List <NameValuePair> params = new ArrayList<NameValuePair>();
 		Hash h = Hash.getInstance();
 		String passwd;
@@ -219,6 +221,8 @@ public class HttpPostService {
 						}
 					}
 				}
+			}else if(pr.isInvalidKey()){
+				throw new InvalidKeyCryptorException("");
 			}
 		} catch (NoSuchAlgorithmException e1) {
 			// TODO Auto-generated catch block

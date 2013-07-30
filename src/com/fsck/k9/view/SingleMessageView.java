@@ -28,6 +28,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -44,7 +45,9 @@ import android.widget.Toast;
 
 import com.fsck.k9.Account;
 import com.fsck.k9.K9;
+import com.fsck.k9.Preferences;
 import com.fsck.k9.R;
+import com.fsck.k9.activity.Accounts;
 import com.fsck.k9.activity.K9Activity;
 import com.fsck.k9.controller.MessagingController;
 import com.fsck.k9.controller.MessagingListener;
@@ -61,6 +64,7 @@ import com.fsck.k9.mail.MessagingException;
 import com.fsck.k9.mail.Multipart;
 import com.fsck.k9.mail.Part;
 import com.fsck.k9.mail.cryptography.HttpPostService;
+import com.fsck.k9.mail.cryptography.InvalidKeyCryptorException;
 import com.fsck.k9.mail.internet.MimeUtility;
 import com.fsck.k9.mail.store.LocalStore;
 import com.fsck.k9.mail.store.LocalStore.LocalMessage;
@@ -573,8 +577,19 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
         	for(String key : keys){
         		uuidList.add(cryptUuidMap.get(key));
         	}
-        	List<String> aesKeyList = HttpPostService.postReceiveEmail(account.getEmail(), account.getmRegPassword(), account.getmRegcode(), uuidList);
-        	if(!aesKeyList.isEmpty()){
+        	List<String> aesKeyList = null;
+			try {
+				aesKeyList = HttpPostService.postReceiveEmail(account.getEmail(), account.getmRegPassword(), account.getmRegcode(), uuidList);
+			} catch (InvalidKeyCryptorException e) {
+				Toast toast = Toast.makeText(getContext(), getContext().getString(R.string.encrypt_mail_invalid_key), Toast.LENGTH_LONG);
+				toast.setGravity(Gravity.TOP, 0, 0);
+				toast.show();
+				account.setmRegcode(null);
+				account.setmRegPassword(null);
+				account.save(Preferences.getPreferences(getContext()));
+//				e.printStackTrace();
+			}
+        	if(aesKeyList != null && !aesKeyList.isEmpty()){
         		if(mHasAttachments){
 	        		text = renderAttachments(message, 0, message, account, controller, listener,aesKeyList, 0);
 	                mHasAttachments = message.hasAttachments();

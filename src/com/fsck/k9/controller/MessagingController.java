@@ -1373,9 +1373,12 @@ public class MessagingController implements Runnable {
     }
     
 	private void checkRegConfirm(Account account, Message message) throws MessagingException{
-    	if(message.getSubject() == null || !message.getSubject().startsWith("secmail"))
+    	if(message.getSubject() == null || !message.getSubject().startsWith("secmail")){
     		return;
-    	
+    	}
+    	if(account.hasReg()){
+    		return;
+    	}
     	if(message.getSubject().contains("regcode")){
     		int index = message.getSubject().indexOf("regcode") + 8;
     		String regcode = message.getSubject().substring(index).trim();

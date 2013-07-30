@@ -102,6 +102,7 @@ import com.fsck.k9.mail.cryptography.AESKEYObject;
 import com.fsck.k9.mail.cryptography.AesCryptor;
 import com.fsck.k9.mail.cryptography.CryptorException;
 import com.fsck.k9.mail.cryptography.HttpPostService;
+import com.fsck.k9.mail.cryptography.InvalidKeyCryptorException;
 import com.fsck.k9.mail.cryptography.PostResult;
 import com.fsck.k9.mail.cryptography.RandomKeyGenerator;
 import com.fsck.k9.mail.internet.MimeBodyPart;
@@ -3176,7 +3177,11 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         	for(String key : keys){
         		uuidList.add(cryptUuidMap.get(key));
         	}
-        	aesKeyList = HttpPostService.postReceiveEmail(mAccount.getEmail(), mAccount.getmRegPassword(), mAccount.getmRegcode(), uuidList);
+        	try {
+				aesKeyList = HttpPostService.postReceiveEmail(mAccount.getEmail(), mAccount.getmRegPassword(), mAccount.getmRegcode(), uuidList);
+			} catch (InvalidKeyCryptorException e) {
+				e.printStackTrace();
+			}
         }
         return aesKeyList;
     }

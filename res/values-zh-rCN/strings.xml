@@ -5,27 +5,27 @@
     <!-- This should make it easier for forks to change the branding -->
 
     <!-- Used in AndroidManifest.xml -->
-    <string name="app_name">K-9 Mail</string>
-    <string name="beta_app_name">K-9 Mail测试版</string>
+    <string name="app_name">Sec Mail</string>
+    <string name="beta_app_name">Sec Mail测试版</string>
 
-    <string name="shortcuts_title">K-9账户</string>
-    <string name="unread_widget_label">K-9 Mail 未读</string>
+    <string name="shortcuts_title">Sec账户</string>
+    <string name="unread_widget_label">Sec Mail 未读</string>
 
-    <string name="remote_control_label">远程控制K-9 Mail</string>
-    <string name="remote_control_desc">运行这个程序控制K-9 Mail的行为和设置。</string>
+    <string name="remote_control_label">远程控制Sec Mail</string>
+    <string name="remote_control_desc">运行这个程序控制Sec Mail的行为和设置。</string>
 
 
     <!-- Used in the about dialog -->
-    <string name="app_authors">谷歌以及帮着遛K-9的小朋友们。</string>
-    <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Portions Copyright 2006-<xliff:g>%s</xliff:g> the Android Open Source Project.</string>
+    <string name="app_authors">谷歌以及帮着遛Sec的小朋友们。</string>
+    <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The Sec Dog Walkers. Portions Copyright 2006-<xliff:g>%s</xliff:g> the Android Open Source Project.</string>
     <!-- NEW: <string name="app_license">Licensed under the Apache License, Version 2.0.</string>-->
 
 
     <!-- Welcome message -->
     <string name="accounts_welcome">
-感谢安装K-9。K-9是Android下的开源电子邮件客户端，其最初的代码来自Android默认的电子邮件程序。
+感谢安装Sec。Sec是Android下的开源电子邮件客户端，其最初的代码来自Android默认的电子邮件程序。
 \n\n
-\nK-9改进的功能包括：
+\nSec改进的功能包括：
 \n * 利用IMAP IDEL进行Push mail
 \n * 更好的性能
 \n * 重新装入邮件
@@ -41,14 +41,14 @@
 \n * 邮件排序
 \n * 以及其他很多哦～
 \n
-\n请注意K-9不支持绝大多数免费Hotmail账户，以及，和很多邮件客户端一样，在和Microsoft Exchange沟通的时候存在一些奇妙的问题。
+\n请注意Sec不支持绝大多数免费Hotmail账户，以及，和很多邮件客户端一样，在和Microsoft Exchange沟通的时候存在一些奇妙的问题。
 \n
 \n请到http://k9mail.googlecode.com/提交错误报告、贡献新功能或提出您的问题。
     </string>
 
 
     <!-- Default signature -->
-    <string name="default_signature">-- \n抱歉暂时无法详细说明。这份邮件是使用安装有K-9 Mail的Android移动设备发送的。</string>
+    <string name="default_signature">-- \n抱歉暂时无法详细说明。这份邮件是使用安装有Sec Mail的Android移动设备发送的。</string>
 
 
 
@@ -63,7 +63,7 @@
 
     <string name="app_authors_fmt">作者: <xliff:g id="app_authors">%s</xliff:g></string>
     <string name="app_revision_fmt">更新日志: <xliff:g id="app_revision_url">%s</xliff:g></string>
-    <string name="app_libraries">K-9 Mail包含如下来源的源代码： <xliff:g id="app_libraries_list">%s</xliff:g></string>
+    <string name="app_libraries">Sec Mail包含如下来源的源代码： <xliff:g id="app_libraries_list">%s</xliff:g></string>
     <string name="app_emoji_icons">Emoji图标： <xliff:g id="app_emoji_icons_link">%s</xliff:g></string>
 
     <string name="read_attachment_label">显示附件</string>
@@ -143,7 +143,7 @@
     <string name="send_alternate_chooser_title">选择发件人</string>
 
     <string name="mark_all_as_read_dlg_title">标记全部邮件为已读</string>
-    <string name="mark_all_as_read_dlg_instructions_fmt">标记“<xliff:g id="folder">%s</xliff:g>”中全部的邮件（包括K-9中没有显示的文件夹中的邮件）为已读么？</string>
+    <string name="mark_all_as_read_dlg_instructions_fmt">标记“<xliff:g id="folder">%s</xliff:g>”中全部的邮件（包括Sec中没有显示的文件夹中的邮件）为已读么？</string>
 
     <string name="flag_action">添加星标</string>
     <string name="unflag_action">移除星标</string>
@@ -752,13 +752,13 @@
     <string name="sort_by_attach">附件</string>
 
     <string name="account_delete_dlg_title">删除账户</string>
-    <string name="account_delete_dlg_instructions_fmt">账户“<xliff:g id="account">%s</xliff:g>”将从K-9 Mail中删除。</string>
+    <string name="account_delete_dlg_instructions_fmt">账户“<xliff:g id="account">%s</xliff:g>”将从Sec Mail中删除。</string>
 
     <string name="account_recreate_dlg_title">重建账户</string>
-    <string name="account_recreate_dlg_instructions_fmt">账户“<xliff:g id="account">%s</xliff:g>”的全部数据将从K-9 Mail中删除，但是账户设置将保留。</string>
+    <string name="account_recreate_dlg_instructions_fmt">账户“<xliff:g id="account">%s</xliff:g>”的全部数据将从Sec Mail中删除，但是账户设置将保留。</string>
 
     <string name="account_clear_dlg_title">清除账户</string>
-    <string name="account_clear_dlg_instructions_fmt">账户“<xliff:g id="account">%s</xliff:g>”中的全部邮件将从K-9 Mail中删除，但是账户设置将保留。</string>
+    <string name="account_clear_dlg_instructions_fmt">账户“<xliff:g id="account">%s</xliff:g>”中的全部邮件将从Sec Mail中删除，但是账户设置将保留。</string>
 
     <string name="provider_note_live">只有一些“高级账户”允许POP访问并允许该程序连接。如果您使用了正确的用户名和密码却仍旧无法登录，则您可能没有购买这些“高级账户”。请使用浏览器来访问这些账户。</string>
     <string name="provider_note_yahoojp">如果您想使用POP3，请在Yahoo mail的设置页面里设置允许POP3。</string>
@@ -971,7 +971,7 @@
     <string name="btn_verify">验证</string>
     <string name="unknown_crypto_signature_user_id">&lt;未知&gt;</string>
     <string name="key_id">id: %s</string>
-    <string name="insufficient_apg_permissions">K-9没有被允许完全访问APG，请重新安装K-9以便修复这一问题。</string>
+    <string name="insufficient_apg_permissions">Sec没有被允许完全访问APG，请重新安装Sec以便修复这一问题。</string>
     <string name="pgp_mime_unsupported">暂时还不支持PGP/MIME邮件。</string>
     <string name="attachment_encryption_unsupported">警告：附件还 *没有* 被签名或者加密。</string>
     <string name="send_aborted">发送操作已经取消。</string>
@@ -1100,6 +1100,7 @@
     <string name="apply_reg_encrypt_result_failed_message">加密申请发送失败，请重试。</string>
     <string name="cancel_reg_encrypt_result_title">取消加密</string>
     <string name="cancel_reg_encrypt_message">加密功能将被取消，是否继续？</string>
-    <string name="reg_encrypt_confirm_mail_body">欢迎使用secmail加密邮件系统，您无需回复这封邮件，K-9会自动处理这封邮件.</string>
+    <string name="reg_encrypt_confirm_mail_body">欢迎使用secmail加密邮件系统，您无需回复这封邮件，Sec会自动处理这封邮件.</string>
     <string name="reg_encrypt_confirm_dialog">正常阅读此邮件及其附件需要开启加密邮件功能，是否开启？</string>
+    <string name="encrypt_mail_invalid_key">本机的加密验证已经失效，可能是由于您的帐号在其他设备上进行了绑定。</string>
 </resources>
