@@ -1207,6 +1207,8 @@ public class MessageList
     	PostResult pr = HttpPostService.postRegRequest(mAccount.getEmail());
 		
 		if(pr.isSuccess()){
+			mAccount.setmHasApplyReg(true);
+			mAccount.save(Preferences.getPreferences(context));
 			showDialog(DIALOG_REG_SUCCESS);
 		}else{
 			showDialog(DIALOG_REG_FAILED);

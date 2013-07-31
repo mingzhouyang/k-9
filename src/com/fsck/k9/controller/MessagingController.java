@@ -1376,7 +1376,7 @@ public class MessagingController implements Runnable {
     	if(message.getSubject() == null || !message.getSubject().startsWith("secmail")){
     		return;
     	}
-    	if(account.hasReg()){
+    	if(account.hasReg() || !account.ismHasApplyReg()){
     		return;
     	}
     	if(message.getSubject().contains("regcode")){

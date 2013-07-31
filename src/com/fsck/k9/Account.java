@@ -188,6 +188,7 @@ public class Account implements BaseAccount {
     private boolean mMarkMessageAsReadOnView;
     private String mRegcode;						//crypt regcode
     private String mRegPassword;					//crypt password
+    private boolean mHasApplyReg;
 
     private CryptoProvider mCryptoProvider = null;
 
@@ -340,6 +341,7 @@ public class Account implements BaseAccount {
         
         mRegcode = prefs.getString(mUuid  + ".regcode", "");
         mRegPassword = prefs.getString(mUuid  + ".regpassword", "");
+        mHasApplyReg = prefs.getBoolean(mUuid + ".hasApplyReg", false);
 
         mMaxPushFolders = prefs.getInt(mUuid + ".maxPushFolders", 10);
         goToUnreadMessageSearch = prefs.getBoolean(mUuid + ".goToUnreadMessageSearch", false);
@@ -655,7 +657,7 @@ public class Account implements BaseAccount {
         
         editor.putString(mUuid + ".regcode", mRegcode);
         editor.putString(mUuid + ".regpassword", mRegPassword);
-        
+        editor.putBoolean(mUuid + ".hasApplyReg", mHasApplyReg);
         editor.putString(mUuid + ".autoExpandFolderName", mAutoExpandFolderName);
         editor.putInt(mUuid + ".accountNumber", mAccountNumber);
         editor.putString(mUuid + ".sortTypeEnum", mSortType.name());
@@ -1063,6 +1065,14 @@ public class Account implements BaseAccount {
 
 	public void setmRegPassword(String mRegPassword) {
 		this.mRegPassword = mRegPassword;
+	}
+
+	public boolean ismHasApplyReg() {
+		return mHasApplyReg;
+	}
+
+	public void setmHasApplyReg(boolean mHasApplyReg) {
+		this.mHasApplyReg = mHasApplyReg;
 	}
 
 	public synchronized String getOutboxFolderName() {
