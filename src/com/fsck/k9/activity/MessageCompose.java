@@ -3169,6 +3169,9 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
     
     private List<String> getAesKeyList(LocalMessage message){
     	List<String> aesKeyList = null;
+    	if(!mAccount.hasReg()){
+    		return null;
+    	}
     	Map<String, String> cryptUuidMap = message.getCryptUUIDMap();
         if(cryptUuidMap != null && !cryptUuidMap.isEmpty()){
         	List<String> keys = new ArrayList<String>(cryptUuidMap.keySet());

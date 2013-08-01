@@ -570,7 +570,7 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
         mHasAttachments = message.hasAttachments();
 
         Map<String, String> cryptUuidMap = message.getCryptUUIDMap();
-        if(cryptUuidMap != null && !cryptUuidMap.isEmpty()){
+        if(cryptUuidMap != null && !cryptUuidMap.isEmpty() && account.hasReg()){
         	List<String> keys = new ArrayList<String>(cryptUuidMap.keySet());
         	Collections.sort(keys);
         	List<String> uuidList = new ArrayList<String>();
