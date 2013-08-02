@@ -284,7 +284,7 @@
                     android:inputType="textMultiLine|textAutoCorrect|textCapSentences"
                     android:textAppearance="?android:attr/textAppearanceMedium" />
 
-                <com.fsck.k9.view.MessageWebView
+                <org.ancode.secmail.view.MessageWebView
                     android:id="@+id/quoted_html"
                     android:layout_height="wrap_content"
                     android:layout_width="fill_parent" />
