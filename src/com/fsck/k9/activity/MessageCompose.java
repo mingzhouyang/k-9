@@ -102,6 +102,7 @@ import com.fsck.k9.mail.cryptography.AESKEYObject;
 import com.fsck.k9.mail.cryptography.AesCryptor;
 import com.fsck.k9.mail.cryptography.CryptorException;
 import com.fsck.k9.mail.cryptography.HttpPostService;
+import com.fsck.k9.mail.cryptography.InvalidKeyCryptorException;
 import com.fsck.k9.mail.cryptography.PostResult;
 import com.fsck.k9.mail.cryptography.RandomKeyGenerator;
 import com.fsck.k9.mail.internet.MimeBodyPart;
@@ -1373,15 +1374,17 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
                 }
             }
         }
-        if(encryptEnabled && !isDraft && aeskey != null && attList.isEmpty()){
-        	try {
-        		Uri msgUri = getMessageTextBodyUri(text, file);
-        		Attachment att = this.buildAttachement(msgUri, null);
-        		attList.add(new BodyAttachment(aeskey, att));
-        		text = getBaseContext().getString(R.string.encrypt_mail_body_message);
-			} catch (CryptorException e) {
-				e.printStackTrace();
-			}
+        if(encryptEnabled && !isDraft && aeskey != null ){
+        	if(attList.isEmpty()){
+	        	try {
+	        		Uri msgUri = getMessageTextBodyUri(text, file);
+	        		Attachment att = this.buildAttachement(msgUri, null);
+	        		attList.add(new BodyAttachment(aeskey, att));
+				} catch (CryptorException e) {
+					e.printStackTrace();
+				}
+        	}
+        	text = getBaseContext().getString(R.string.encrypt_mail_body_message);
         }
         TextBody body = new TextBody(text);
         body.setComposedMessageLength(composedMessageLength);
@@ -3166,6 +3169,9 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
     
     private List<String> getAesKeyList(LocalMessage message){
     	List<String> aesKeyList = null;
+    	if(!mAccount.hasReg()){
+    		return null;
+    	}
     	Map<String, String> cryptUuidMap = message.getCryptUUIDMap();
         if(cryptUuidMap != null && !cryptUuidMap.isEmpty()){
         	List<String> keys = new ArrayList<String>(cryptUuidMap.keySet());
@@ -3174,7 +3180,11 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
         	for(String key : keys){
         		uuidList.add(cryptUuidMap.get(key));
         	}
-        	aesKeyList = HttpPostService.postReceiveEmail(mAccount.getEmail(), mAccount.getmRegPassword(), mAccount.getmRegcode(), uuidList);
+        	try {
+				aesKeyList = HttpPostService.postReceiveEmail(mAccount.getEmail(), mAccount.getmRegPassword(), mAccount.getmRegcode(), uuidList);
+			} catch (InvalidKeyCryptorException e) {
+				e.printStackTrace();
+			}
         }
         return aesKeyList;
     }

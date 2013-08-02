@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.spec.AlgorithmParameterSpec;
-import java.util.Arrays;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -18,10 +17,9 @@ import android.util.Log;
 
 import com.fsck.k9.mail.filter.Base64;
 
-public class AesCryptor {
+public class AesCryptorOld {
 	Cipher ecipher;
 	Cipher dcipher;
-	byte[] mIv;
 
 	/**
 	 * Input a string that will be md5 hashed to create the key.
@@ -29,12 +27,9 @@ public class AesCryptor {
 	 * @return void, cipher initialized
 	 */
 
-	public AesCryptor(String Key) throws CryptorException {
+	public AesCryptorOld(String Key) throws CryptorException {
 		try {
-			byte[] key = Hash.getInstance().SHA256(Key.getBytes());
-			mIv = Arrays.copyOf(key, 16);
-			SecretKeySpec skey = new SecretKeySpec(key, "AES");
-
+			SecretKeySpec skey = new SecretKeySpec(Hash.getInstance().SHA256(Key.getBytes()), "AES");
 			this.setupCrypto(skey, "AES/CTR/NoPadding");
 		} catch (Exception e) {
 			throw new CryptorException(e);
@@ -43,13 +38,12 @@ public class AesCryptor {
 
 	private void setupCrypto(SecretKey key, String Alg) throws CryptorException {
 		// Create an 8-byte initialization vector
-		// mIv = new byte[] { 0x14, 0x0a, 0x0a, 0x0b, 0x14, 0x08, 0x0c, 0x0b,
-		// 0x13, 0x4a, 0x0c, 0x05, 0x13, 0x50, 0x02,
-		// 0x1c };
+		byte[] iv = new byte[] { 0x14, 0x0a, 0x0a, 0x0b, 0x14, 0x08, 0x0c, 0x0b, 0x13, 0x4a, 0x0c, 0x05, 0x13, 0x50,
+				0x02, 0x1c };
 
-		Log.d("RSA", "iv:" + byteToHex(mIv));
+		Log.d("DB", byteToHex(iv));
 
-		AlgorithmParameterSpec paramSpec = new IvParameterSpec(mIv);
+		AlgorithmParameterSpec paramSpec = new IvParameterSpec(iv);
 		try {
 			ecipher = Cipher.getInstance(Alg);
 			dcipher = Cipher.getInstance(Alg);
@@ -65,8 +59,7 @@ public class AesCryptor {
 	// Buffer used to transport the bytes from one stream to another
 	byte[] buf = new byte[1024];
 
-	public void encrypt(InputStream in, OutputStream out)
-			throws CryptorException {
+	public void encrypt(InputStream in, OutputStream out) throws CryptorException {
 		CipherOutputStream cout = null;
 		try {
 			// Bytes written to out will be encrypted
@@ -140,24 +133,22 @@ public class AesCryptor {
 	}
 
 	/**
-	 * ï¿½Ô¸ï¿½ï¿½ï¿½ï¿½Ý½ï¿½ï¿½ï¿½AESï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½Ò½ï¿½ï¿½ï¿½ï¿½Üºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½BASE64ï¿½ï¿½ï¿½Ð±ï¿½ï¿½ï¿½
+	 * ¶Ô¸ø¶¨µÄÊý¾Ý½øÐÐAES¼ÓÃÜ£¬²¢ÇÒ½«¼ÓÃÜºóµÄÃÜÎÄÊ¹ÓÃBASE64½øÐÐ±àÂë
 	 * 
 	 * @param plaintext
-	 *            ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-	 * @return ï¿½ï¿½ï¿½ï¿½BASE64ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½
+	 *            Ã÷ÎÄÄÚÈÝ
+	 * @return ¾­¹ýBASE64±àÂëºóµÄ×Ö·û´®
 	 */
 	public String encryptBase64Encode(byte[] plaintext) throws CryptorException {
 		try {
-			return new String(Base64.encodeBase64(ecipher.doFinal(plaintext, 0,
-					plaintext.length)));
+			return new String(Base64.encodeBase64(ecipher.doFinal(plaintext, 0, plaintext.length)));
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new CryptorException(e);
 		}
 	}
 
-	public void decrypt(InputStream in, OutputStream out)
-			throws CryptorException {
+	public void decrypt(InputStream in, OutputStream out) throws CryptorException {
 		CipherInputStream cin = null;
 		try {
 			// Bytes read from in will be decrypted
@@ -195,16 +186,14 @@ public class AesCryptor {
 	 */
 	public String decrypt(String hexCipherText) throws CryptorException {
 		try {
-			String plaintext = new String(
-					dcipher.doFinal(hexToByte(hexCipherText)), "UTF-8");
+			String plaintext = new String(dcipher.doFinal(hexToByte(hexCipherText)), "UTF-8");
 			return plaintext;
 		} catch (Exception e) {
 			throw new CryptorException(e);
 		}
 	}
 
-	public byte[] decrypt(byte[] ciphertext, int length)
-			throws CryptorException {
+	public byte[] decrypt(byte[] ciphertext, int length) throws CryptorException {
 		try {
 			return dcipher.doFinal(ciphertext, 0, length);
 		} catch (Exception e) {
@@ -220,8 +209,7 @@ public class AesCryptor {
 		}
 	}
 
-	public byte[] decryptBase64String(String base64String)
-			throws CryptorException {
+	public byte[] decryptBase64String(String base64String) throws CryptorException {
 		try {
 			byte[] data = Base64.decodeBase64(base64String.getBytes());
 			return dcipher.doFinal(data, 0, data.length);
@@ -248,8 +236,7 @@ public class AesCryptor {
 		}
 		final StringBuilder hex = new StringBuilder(2 * raw.length);
 		for (final byte b : raw) {
-			hex.append(HEXES.charAt((b & 0xF0) >> 4)).append(
-					HEXES.charAt((b & 0x0F)));
+			hex.append(HEXES.charAt((b & 0xF0) >> 4)).append(HEXES.charAt((b & 0x0F)));
 		}
 		return hex.toString();
 	}
@@ -258,8 +245,8 @@ public class AesCryptor {
 		int len = hexString.length();
 		byte[] ba = new byte[len / 2];
 		for (int i = 0; i < len; i += 2) {
-			ba[i / 2] = (byte) ((Character.digit(hexString.charAt(i), 16) << 4) + Character
-					.digit(hexString.charAt(i + 1), 16));
+			ba[i / 2] = (byte) ((Character.digit(hexString.charAt(i), 16) << 4) + Character.digit(
+					hexString.charAt(i + 1), 16));
 		}
 		return ba;
 	}
@@ -271,22 +258,22 @@ public class AesCryptor {
 	}
 
 	/**
-	 * ï¿½ï¿½ï¿½Ü½ï¿½È½Ó¿Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý½ï¿½ÈµÄ½Ó¿Ú¡ï¿½
+	 * ¼ÓÃÜ½ø¶È½Ó¿Ú£¬ÓÃÀ´´¥·¢¼ÓÃÜÊý¾Ý½ø¶ÈµÄ½Ó¿Ú¡£
 	 * 
 	 * @author mada
 	 * 
 	 */
 	public interface EncryptProgressListener {
 		/**
-		 * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¸ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Â½ï¿½ï¿½
+		 * µ±¼ÓÃÜÊý¾ÝÓÐ¸üÐÂÊ±ºò¸üÐÂ½ø¶È
 		 * 
 		 * @param progress
-		 *            ï¿½ï¿½Ç°ï¿½ï¿½È£ï¿½ï¿½Ñ¼ï¿½ï¿½Üµï¿½ï¿½Ö½Ú³ï¿½ï¿½ï¿½
+		 *            µ±Ç°½ø¶È£¬ÒÑ¼ÓÃÜµÄ×Ö½Ú³¤¶È
 		 */
 		public void OnEncryptUpdateProgress(long progress);
 
 		/**
-		 * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		 * ËùÓÐÊý¾Ý¼ÓÃÜÍê³É
 		 */
 		public void OnEncryptFinished();
 	}
@@ -298,27 +285,27 @@ public class AesCryptor {
 	}
 
 	/**
-	 * ï¿½ï¿½ï¿½Ü½ï¿½È½Ó¿Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý½ï¿½ÈµÄ½Ó¿Ú¡ï¿½
+	 * ½âÃÜ½ø¶È½Ó¿Ú£¬ÓÃÀ´´¥·¢½âÃÜÊý¾Ý½ø¶ÈµÄ½Ó¿Ú¡£
 	 * 
 	 * @author mada
 	 * 
 	 */
 	public interface DecryptProgressListener {
 		/**
-		 * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¸ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Â½ï¿½ï¿½
+		 * µ±½âÃÜÊý¾ÝÓÐ¸üÐÂÊ±ºò¸üÐÂ½ø¶È
 		 * 
 		 * @param progress
-		 *            ï¿½ï¿½Ç°ï¿½ï¿½È£ï¿½ï¿½Ñ½ï¿½ï¿½Üµï¿½ï¿½Ö½Ú³ï¿½ï¿½ï¿½
+		 *            µ±Ç°½ø¶È£¬ÒÑ½âÃÜµÄ×Ö½Ú³¤¶È
 		 */
 		public void OnDecryptUpdateProgress(long progress);
 
 		/**
-		 * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		 * ËùÓÐÊý¾Ý½âÃÜÍê³É
 		 */
 		public void OnDecryptFinished();
 	}
 
-	public static void main(String args[]) throws CryptorException {
+	public static void main(String args[]) throws CryptorException{
 		AesCryptor enc = new AesCryptor("password");
 		String key = enc.encrypt("key1");
 		System.out.println(key);

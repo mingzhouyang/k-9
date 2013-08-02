@@ -1778,7 +1778,7 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
             		holder.encryStatus.setVisibility(View.VISIBLE);
             		holder.encryStatus.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_unlock));
 //	            	holder.encryStatus.setText(getString(R.string.apply_reg_encrypt));
-	            	holder.encryStatus.setOnClickListener(new RegEncryptClickListener((Account)account));
+	            	holder.encryStatus.setOnClickListener(new RegEncryptClickListener((Account)account, getApplicationContext()));
             	}else{
             		holder.encryStatus.setVisibility(View.VISIBLE);
             		holder.encryStatus.setBackgroundDrawable(getResources().getDrawable(R.drawable.ic_button_lock));
@@ -1839,15 +1839,19 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
     private class RegEncryptClickListener implements OnClickListener{
 
     	final Account account;
+    	Context context;
     	
-    	RegEncryptClickListener(Account nAccount){
+    	RegEncryptClickListener(Account nAccount, Context mContext){
     		account = nAccount;
+    		context = mContext;
     	}
 		@Override
 		public void onClick(View v) {
 			PostResult pr = HttpPostService.postRegRequest(account.getEmail());
 			
 			if(pr.isSuccess()){
+				account.setmHasApplyReg(true);
+            	account.save(Preferences.getPreferences(context));
 				showDialog(DIALOG_REG_SUCCESS);
 			}else{
 				showDialog(DIALOG_REG_FAILED);

@@ -1373,9 +1373,12 @@ public class MessagingController implements Runnable {
     }
     
 	private void checkRegConfirm(Account account, Message message) throws MessagingException{
-    	if(message.getSubject() == null || !message.getSubject().startsWith("secmail"))
+    	if(message.getSubject() == null || !message.getSubject().startsWith("secmail")){
     		return;
-    	
+    	}
+    	if(account.hasReg() || !account.ismHasApplyReg()){
+    		return;
+    	}
     	if(message.getSubject().contains("regcode")){
     		int index = message.getSubject().indexOf("regcode") + 8;
     		String regcode = message.getSubject().substring(index).trim();
@@ -1701,7 +1704,7 @@ public class MessagingController implements Runnable {
                     remoteFolder.fetchPart(message, part, null);
                 }
                 // Store the updated message locally
-                localFolder.appendMessages(new Message[] { message });
+                localFolder.appendMessages(new Message[] { message }, true);
 
                 Message localMessage = localFolder.getMessage(message.getUid());
 
