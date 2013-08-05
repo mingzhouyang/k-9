@@ -5,50 +5,43 @@
     <!-- This should make it easier for forks to change the branding -->
 
     <!-- Used in AndroidManifest.xml -->
-    <string name="app_name">Sec Mail</string>
-    <string name="beta_app_name">Sec Mail测试版</string>
+    <string name="app_name">鸽子密邮</string>
+    <string name="beta_app_name">鸽子密邮测试版</string>
 
-    <string name="shortcuts_title">Sec账户</string>
-    <string name="unread_widget_label">Sec Mail 未读</string>
+    <string name="shortcuts_title">鸽子密邮账户</string>
+    <string name="unread_widget_label">鸽子密邮 未读</string>
 
-    <string name="remote_control_label">远程控制Sec Mail</string>
-    <string name="remote_control_desc">运行这个程序控制Sec Mail的行为和设置。</string>
+    <string name="remote_control_label">远程控制鸽子密邮</string>
+    <string name="remote_control_desc">运行这个程序控制鸽子密邮的行为和设置。</string>
 
 
     <!-- Used in the about dialog -->
-    <string name="app_authors">谷歌以及帮着遛Sec的小朋友们。</string>
+    <string name="app_authors">谷歌以及帮着放鸽子的小朋友们。</string>
     <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The Sec Dog Walkers. Portions Copyright 2006-<xliff:g>%s</xliff:g> the Android Open Source Project.</string>
     <!-- NEW: <string name="app_license">Licensed under the Apache License, Version 2.0.</string>-->
 
 
     <!-- Welcome message -->
     <string name="accounts_welcome">
-感谢安装Sec。Sec是Android下的开源电子邮件客户端，其最初的代码来自Android默认的电子邮件程序。
+感谢安装鸽子密邮。鸽子密邮是Android下的开源电子邮件客户端，它基于Android下著名的开源电子邮件客户端k-9。
 \n\n
-\nSec改进的功能包括：
-\n * 利用IMAP IDEL进行Push mail
-\n * 更好的性能
-\n * 重新装入邮件
-\n * 邮件签名
-\n * 暗送给自己
-\n * 文件夹订阅
-\n * 同步全部文件夹
-\n * 可以编辑回件地址
-\n * 键盘快捷键
-\n * 更好的IMAP支持
-\n * 保存附件到SD卡
-\n * 清空垃圾箱
-\n * 邮件排序
-\n * 以及其他很多哦～
+\n鸽子密邮改进的功能包括：
+\n * 每封邮件都有唯一的密码
+\n * 密钥和密文不同渠道传递
+\n * 支持任意的pop和imap邮箱
+\n * 支持群发邮件加密
+\n * 附件天然加密传输
+\n * 轻松对抗棱镜追踪
+\n * 全面抵制邮件服务商的内容抓取
+\n * 包含k-9邮件客户端所有强大功能
 \n
-\n请注意Sec不支持绝大多数免费Hotmail账户，以及，和很多邮件客户端一样，在和Microsoft Exchange沟通的时候存在一些奇妙的问题。
+\n请注意鸽子密邮不支持绝大多数免费Hotmail账户，以及，和很多邮件客户端一样，在和Microsoft Exchange沟通的时候存在一些问题。
 \n
-\n请到http://k9mail.googlecode.com/提交错误报告、贡献新功能或提出您的问题。
     </string>
 
 
     <!-- Default signature -->
-    <string name="default_signature">-- \n抱歉暂时无法详细说明。这份邮件是使用安装有Sec Mail的Android移动设备发送的。</string>
+    <string name="default_signature">-- \n邮件正文和附件均由鸽子密邮的Android客户端发送。</string>
 
 
 
@@ -63,7 +56,7 @@
 
     <string name="app_authors_fmt">作者: <xliff:g id="app_authors">%s</xliff:g></string>
     <string name="app_revision_fmt">更新日志: <xliff:g id="app_revision_url">%s</xliff:g></string>
-    <string name="app_libraries">Sec Mail包含如下来源的源代码： <xliff:g id="app_libraries_list">%s</xliff:g></string>
+    <string name="app_libraries">鸽子密邮包含如下来源的源代码： <xliff:g id="app_libraries_list">%s</xliff:g></string>
     <string name="app_emoji_icons">Emoji图标： <xliff:g id="app_emoji_icons_link">%s</xliff:g></string>
 
     <string name="read_attachment_label">显示附件</string>
