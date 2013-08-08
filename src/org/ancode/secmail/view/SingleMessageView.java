@@ -34,6 +34,7 @@ import org.ancode.secmail.mail.cryptography.HttpPostService;
 import org.ancode.secmail.mail.cryptography.InvalidKeyCryptorException;
 import org.ancode.secmail.mail.internet.MimeUtility;
 import org.ancode.secmail.mail.store.LocalStore;
+import org.ancode.secmail.mail.store.LocalStore.LocalAttachmentBody;
 import org.ancode.secmail.mail.store.LocalStore.LocalMessage;
 import org.ancode.secmail.provider.AttachmentProvider.AttachmentProviderColumns;
 import org.apache.commons.io.IOUtils;
@@ -711,10 +712,18 @@ public class SingleMessageView extends LinearLayout implements OnClickListener, 
 		} else if (part instanceof LocalStore.LocalAttachmentBodyPart) {
 			AttachmentView view = (AttachmentView) mInflater.inflate(R.layout.message_view_attachment, null);
 			view.setCallback(attachmentCallback);
-
+			String aesKey = null;
+			boolean isSentMsg = false;
+			if(part.getBody() instanceof LocalAttachmentBody 
+					&& ((LocalAttachmentBody)part.getBody()).getAeskey() != null 
+					&& message.getFrom()[0].getAddress().equalsIgnoreCase(account.getEmail())
+					&& ((LocalAttachmentBody)part.getBody()).getContentUri() != null){
+				isSentMsg = true;
+			}else{
+				aesKey = aesKeyList != null ? aesKeyList.get(j) : null;
+			}
 			try {
-				if (view.populateFromPart(part, message, account, controller, listener,
-						aesKeyList != null ? aesKeyList.get(j) : null)) {
+				if (view.populateFromPart(part, message, account, controller, listener, aesKey, isSentMsg)) {
 					if (view.isMailBody()) {
 						text = view.getMailBody();
 						message.decreaseAttachmentCount();

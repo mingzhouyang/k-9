@@ -22,6 +22,7 @@ import org.ancode.secmail.mail.cryptography.AesCryptor;
 import org.ancode.secmail.mail.cryptography.CryptorException;
 import org.ancode.secmail.mail.internet.MimeHeader;
 import org.ancode.secmail.mail.internet.MimeUtility;
+import org.ancode.secmail.mail.store.LocalStore.LocalAttachmentBody;
 import org.ancode.secmail.mail.store.LocalStore.LocalAttachmentBodyPart;
 import org.ancode.secmail.provider.AttachmentProvider;
 import org.apache.commons.io.IOUtils;
@@ -59,6 +60,7 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
 	public ImageView iconView;
 	private String aeskey;
 	private boolean isMailBody;
+	private boolean isSentMsg;
 
 	private AttachmentFileDownloadCallback callback;
 
@@ -113,7 +115,7 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
 	 *             In case of an error
 	 */
 	public boolean populateFromPart(Part inputPart, Message message, Account account, MessagingController controller,
-			MessagingListener listener, String aeskey) throws MessagingException {
+			MessagingListener listener, String aeskey, boolean isSentMsg) throws MessagingException {
 		boolean firstClassAttachment = true;
 		part = (LocalAttachmentBodyPart) inputPart;
 
@@ -189,6 +191,7 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
 		// aeskey = ((LocalAttachmentBody)part.getBody()).getAeskey();
 		this.aeskey = aeskey;
 		isMailBody = name.startsWith("mbdy") && name.endsWith(".txt");
+		this.isSentMsg = isSentMsg;
 
 		return firstClassAttachment;
 	}
@@ -250,7 +253,8 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
 		try {
 			String filename = Utility.sanitizeFilename(name);
 			File file = Utility.createUniqueFile(directory, filename);
-			Uri uri = AttachmentProvider.getAttachmentUri(mAccount, part.getAttachmentId());
+			Uri uri = isSentMsg ? ((LocalAttachmentBody)part.getBody()).getContentUri() 
+					: AttachmentProvider.getAttachmentUri(mAccount, part.getAttachmentId());
 			InputStream in = mContext.getContentResolver().openInputStream(uri);
 			OutputStream out = new FileOutputStream(file);
 			if (aeskey != null) {
@@ -302,7 +306,8 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
 	}
 
 	public void showFile() {
-		Uri uri = AttachmentProvider.getAttachmentUriForViewing(mAccount, part.getAttachmentId());
+		Uri uri = isSentMsg ? ((LocalAttachmentBody)part.getBody()).getContentUri() 
+				: AttachmentProvider.getAttachmentUriForViewing(mAccount, part.getAttachmentId());
 		uri = decryptAttachement(uri);
 		Intent intent = new Intent(Intent.ACTION_VIEW);
 		// We explicitly set the ContentType in addition to the URI because some
@@ -322,7 +327,7 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
 	}
 
 	private Uri decryptAttachement(Uri uri) {
-		if (aeskey == null)
+		if (aeskey == null || isSentMsg)
 			return uri;
 		try {
 			// String filename = Utility.sanitizeFilename(name);
@@ -415,23 +420,33 @@ public class AttachmentView extends FrameLayout implements OnClickListener, OnLo
 
 	public String getMailBody() {
 		String msg = "";
-		if (aeskey != null && isMailBody) {
-			Uri uri = AttachmentProvider.getAttachmentUri(mAccount, part.getAttachmentId());
-			try {
-				InputStream in = mContext.getContentResolver().openInputStream(uri);
-				OutputStream out = new ByteArrayOutputStream();
+		if(isMailBody){
+			if(isSentMsg){
 				try {
-					AesCryptor crypt = new AesCryptor(aeskey);
-					crypt.decrypt(in, out);
-				} catch (CryptorException e) {
+					InputStream in = mContext.getContentResolver().openInputStream(((LocalAttachmentBody)part.getBody()).getContentUri());
+					msg = IOUtils.toString(in);
+					in.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}	
+			}else if (aeskey != null) {
+				try {
+					Uri uri = AttachmentProvider.getAttachmentUri(mAccount, part.getAttachmentId());
+					InputStream in = mContext.getContentResolver().openInputStream(uri);
+					OutputStream out = new ByteArrayOutputStream();
+					try {
+						AesCryptor crypt = new AesCryptor(aeskey);
+						crypt.decrypt(in, out);
+					} catch (CryptorException e) {
+						e.printStackTrace();
+					}
+					msg = out.toString();
+					out.flush();
+					out.close();
+					in.close();
+				} catch (IOException e) {
 					e.printStackTrace();
 				}
-				msg = out.toString();
-				out.flush();
-				out.close();
-				in.close();
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
 		}
 		return msg;
