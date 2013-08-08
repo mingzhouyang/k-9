@@ -200,7 +200,7 @@
             android:title="@string/gestures_title"
             android:summary="@string/gestures_summary" />
 
-        <com.fsck.k9.preferences.CheckBoxListPreference
+        <org.ancode.secmail.preferences.CheckBoxListPreference
             android:persistent="false"
             android:key="volumeNavigation"
             android:title="@string/volume_navigation_title"
@@ -233,7 +233,7 @@
             android:title="@string/settings_messageview_zoom_controls_label"
             android:summary="@string/settings_messageview_zoom_controls_summary" />
 
-        <com.fsck.k9.preferences.CheckBoxListPreference
+        <org.ancode.secmail.preferences.CheckBoxListPreference
             android:persistent="false"
             android:key="confirm_actions"
             android:title="@string/global_settings_confirm_actions_title"
@@ -297,14 +297,14 @@
             android:title="@string/quiet_time"
             android:summary="@string/quiet_time_description"
             />
-        <com.fsck.k9.preferences.TimePickerPreference
+        <org.ancode.secmail.preferences.TimePickerPreference
             android:key="quiet_time_starts"
             android:persistent="false"
             android:dependency="quiet_time_enabled"
             android:dialogTitle="@string/quiet_time_starts"
             android:title="@string/quiet_time_starts"
             />
-        <com.fsck.k9.preferences.TimePickerPreference
+        <org.ancode.secmail.preferences.TimePickerPreference
             android:key="quiet_time_ends"
             android:dependency="quiet_time_enabled"
             android:persistent="false"

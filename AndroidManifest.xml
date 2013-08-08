@@ -85,7 +85,7 @@
             android:name="org.ancode.secmail.activity.setup.Prefs"
             android:label="@string/prefs_title"
             android:configChanges="locale"
-            android:taskAffinity="com.fsck.k9.activity.setup.Prefs"
+            android:taskAffinity="org.ancode.secmail.activity.setup.Prefs"
             android:launchMode="singleTask"
             android:excludeFromRecents="true"
             >
