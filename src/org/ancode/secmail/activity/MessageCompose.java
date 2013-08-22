@@ -1209,7 +1209,9 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 	 * @return Address array of recipients this email will be sent to.
 	 */
 	private Address[] getRecipientAddresses() {
-		String addresses = mToView.getText().toString() + mCcView.getText().toString() + mBccView.getText().toString();
+		String cc = mCcView.getText().toString().length()>0 ? ',' + mCcView.getText().toString() :  mCcView.getText().toString();
+		String bcc = mBccView.getText().toString().length()>0 ? ',' + mBccView.getText().toString() :  mBccView.getText().toString();
+		String addresses = mToView.getText().toString() + cc + bcc;
 		return Address.parseUnencoded(addresses.trim());
 	}
 
