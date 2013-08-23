@@ -34,7 +34,7 @@ public class PostResult {
 	}
 	
 	public boolean isSuccess(){
-		return retCode.equalsIgnoreCase(OK);
+		return retCode != null && retCode.equalsIgnoreCase(OK);
 	}
 	public String getInvalidKey() {
 		return invalidKey;
@@ -44,6 +44,6 @@ public class PostResult {
 	}
 	
 	public boolean isInvalidKey(){
-		return this.invalidKey.equalsIgnoreCase(INVALID_KEY);
+		return invalidKey != null && invalidKey.equalsIgnoreCase(INVALID_KEY);
 	}
 }
