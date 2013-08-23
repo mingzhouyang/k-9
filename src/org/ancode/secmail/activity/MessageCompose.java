@@ -34,7 +34,6 @@ import org.ancode.secmail.controller.MessagingController;
 import org.ancode.secmail.controller.MessagingListener;
 import org.ancode.secmail.crypto.CryptoProvider;
 import org.ancode.secmail.crypto.PgpData;
-import org.ancode.secmail.helper.ContactItem;
 import org.ancode.secmail.helper.Contacts;
 import org.ancode.secmail.helper.HtmlConverter;
 import org.ancode.secmail.helper.StringUtils;
@@ -88,6 +87,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcelable;
+import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.OpenableColumns;
 import android.text.TextWatcher;
 import android.text.util.Rfc822Tokenizer;
@@ -2099,7 +2099,7 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 		// if a CryptoSystem activity is returning, then mPreventDraftSaving was
 		// set to true
 		mPreventDraftSaving = false;
-
+		Log.v("test", "why0");
 		if (mAccount.getCryptoProvider().onActivityResult(this, requestCode, resultCode, data, mPgpData)) {
 			return;
 		}
@@ -2117,32 +2117,17 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 		case CONTACT_PICKER_TO:
 		case CONTACT_PICKER_CC:
 		case CONTACT_PICKER_BCC:
-			ContactItem contact = mContacts.extractInfoFromContactPickerIntent(data);
-			if (contact == null) {
-				Toast.makeText(this, getString(R.string.error_contact_address_not_found), Toast.LENGTH_LONG).show();
-				return;
-			}
-			if (contact.emailAddresses.size() > 1) {
-				Intent i = new Intent(this, EmailAddressList.class);
-				i.putExtra(EmailAddressList.EXTRA_CONTACT_ITEM, contact);
+			Log.v("test", "why1");
+			Log.v("test", "gezi mail: why?" + data.getData());
+			Uri contactUri = data.getData();
+			String[] projection = { Email.ADDRESS };
+			Cursor cursor = getContentResolver().query(contactUri, projection, null, null, null);
+			cursor.moveToFirst();
 
-				if (requestCode == CONTACT_PICKER_TO) {
-					startActivityForResult(i, CONTACT_PICKER_TO2);
-				} else if (requestCode == CONTACT_PICKER_CC) {
-					startActivityForResult(i, CONTACT_PICKER_CC2);
-				} else if (requestCode == CONTACT_PICKER_BCC) {
-					startActivityForResult(i, CONTACT_PICKER_BCC2);
-				}
-				return;
-			}
-			if (K9.DEBUG) {
-				List<String> emails = contact.emailAddresses;
-				for (int i = 0; i < emails.size(); i++) {
-					Log.v(K9.LOG_TAG, "email[" + i + "]: " + emails.get(i));
-				}
-			}
+			int column = cursor.getColumnIndex(Email.ADDRESS);
+			String email = cursor.getString(column);
 
-			String email = contact.emailAddresses.get(0);
+			Log.v("test", "gezi mail:" + email);
 			if (requestCode == CONTACT_PICKER_TO) {
 				addAddress(mToView, new Address(email, ""));
 			} else if (requestCode == CONTACT_PICKER_CC) {
@@ -2153,11 +2138,53 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 				return;
 			}
 
+			// ContactItem contact =
+			// mContacts.extractInfoFromContactPickerIntent(data);
+			// if (contact == null) {
+			// Toast.makeText(this,
+			// getString(R.string.error_contact_address_not_found),
+			// Toast.LENGTH_LONG).show();
+			// return;
+			// }
+			// Log.v("test", "gezi mail.size:" + contact.emailAddresses.size());
+			// if (contact.emailAddresses.size() > 1) {
+			// Intent i = new Intent(this, EmailAddressList.class);
+			// i.putExtra(EmailAddressList.EXTRA_CONTACT_ITEM, contact);
+			//
+			// if (requestCode == CONTACT_PICKER_TO) {
+			// startActivityForResult(i, CONTACT_PICKER_TO2);
+			// } else if (requestCode == CONTACT_PICKER_CC) {
+			// startActivityForResult(i, CONTACT_PICKER_CC2);
+			// } else if (requestCode == CONTACT_PICKER_BCC) {
+			// startActivityForResult(i, CONTACT_PICKER_BCC2);
+			// }
+			// return;
+			// }
+			// if (K9.DEBUG) {
+			// List<String> emails = contact.emailAddresses;
+			// for (int i = 0; i < emails.size(); i++) {
+			// Log.v(K9.LOG_TAG, "email[" + i + "]: " + emails.get(i));
+			// }
+			// }
+			//
+			// String email = contact.emailAddresses.get(0);
+			// if (requestCode == CONTACT_PICKER_TO) {
+			// addAddress(mToView, new Address(email, ""));
+			// } else if (requestCode == CONTACT_PICKER_CC) {
+			// addAddress(mCcView, new Address(email, ""));
+			// } else if (requestCode == CONTACT_PICKER_BCC) {
+			// addAddress(mBccView, new Address(email, ""));
+			// } else {
+			// return;
+			// }
+
 			break;
 		case CONTACT_PICKER_TO2:
 		case CONTACT_PICKER_CC2:
 		case CONTACT_PICKER_BCC2:
+			Log.v("test", "gezi mail.size:10");
 			String emailAddr = data.getStringExtra(EmailAddressList.EXTRA_EMAIL_ADDRESS);
+
 			if (requestCode == CONTACT_PICKER_TO2) {
 				addAddress(mToView, new Address(emailAddr, ""));
 			} else if (requestCode == CONTACT_PICKER_CC2) {
