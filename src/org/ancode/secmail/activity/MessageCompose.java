@@ -1938,6 +1938,17 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 				return;
 			}
 		}
+		if (encryptEnabled) {
+			List<AESKEYObject>aesKeys = genernateAESKeys(mAttachments.getChildCount() + 1);
+			Address[] toAdd = getRecipientAddresses();
+			String to = Address.toAddressString(toAdd);
+			PostResult pr = HttpPostService.postSendEmail(mIdentity.getEmail(), to, mAccount.getmRegPassword(),
+					mAccount.getmRegcode(), aesKeys);
+			if (!pr.isSuccess()) {
+				mailEncryFailed();
+				return;
+			}
+		}
 		sendMessage();
 
 		if (mMessageReference != null && mMessageReference.flag != null) {
@@ -3611,8 +3622,8 @@ public class MessageCompose extends K9Activity implements OnClickListener, OnFoc
 			} catch (MessagingException me) {
 				Log.e(K9.LOG_TAG, "Failed to create new message for send or save.", me);
 				throw new RuntimeException("Failed to create a new message for send or save.", me);
-			} catch (CryptorException ce) {
-				mailEncryFailed();
+			} catch (CryptorException 	ce) {
+//				mailEncryFailed();
 				Log.w(K9.LOG_TAG, ce.getMessage());
 				return null;
 			}
