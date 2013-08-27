@@ -102,7 +102,15 @@
         <incoming uri="imap+ssl+://imap.gmail.com" username="$email" />
         <outgoing uri="smtp+ssl+://smtp.gmail.com" username="$email" />
     </provider>
-
+    <!-- China -->
+    <provider id="163" label="163" domain="163.com">
+        <incoming uri="pop3+ssl+://pop.163.com" username="$user" />
+        <outgoing uri="smtp+ssl+://smtp.163.com" username="$user" />
+    </provider>
+	<provider id="qq" label="qq" domain="qq.com">
+		<incoming uri="pop3+ssl+://pop.qq.com" username="$user" />
+		<outgoing uri="smtp+ssl+://smtp.qq.com" username="$user" />
+	</provider>
     <!-- USA -->
     <!-- Note, AOL appears to support SSL on both sides, as well -->
     <provider id="aim" label="AIM" domain="aim.com">
