@@ -1099,4 +1099,18 @@
     <string name="encrypt_mail_body_message">这是一封加密邮件，请使用鸽子密邮阅读这封邮件。</string>
     <string name="encrypt_mail_encrypted">邮件已经被加密。</string>
     <string name="encrypt_mail_invalid_key">本机的加密验证已经失效，可能是由于您的帐号在其他设备上进行了绑定。</string>
+    
+    
+    <!-- update -->
+    <string name="download_failure">下载最新版本失败!</string>
+    <string name="apk_file_not_exists">Apk文件不存在!</string>
+    <string name="is_latest_version_label">你的应用已经是最新版本了！</string>
+    <string name="latest_version_time">发布时间: %1$s</string>
+    <string name="network_not_activated">无法连接到服务器，请重新尝试...</string>
+    <string name="latest_version_title">发现有新的版本(%1$s)</string>
+    <string name="update_latest_version_title">发现新的版本(%1$s), 正在更新&#8230;</string>
+    <string name="later_on_wifi">将在wifi下自动启用更新</string>
+    <string name="later_update_tip">Updating&#8230; (Submited when you\'r NOT on Wifi)</string>
+    <string name="update">更新</string>
+    <string name="ignore">忽略</string>
 </resources>

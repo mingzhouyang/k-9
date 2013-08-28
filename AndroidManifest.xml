@@ -26,6 +26,8 @@
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" /> 
+    <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
 
     <uses-permission android:name="org.thialfihar.android.apg.permission.READ_KEY_DETAILS" />
 
@@ -169,6 +171,11 @@
             android:name="org.ancode.secmail.activity.EditIdentity"
             android:label="@string/edit_identity_title"
             android:configChanges="locale"
+            >
+        </activity>
+        <activity
+            android:name="org.ancode.secmail.activity.UpdateActivity"
+            android:label="@string/update"
             >
         </activity>
         <!-- XXX Note: this activity is hacked to ignore config changes,

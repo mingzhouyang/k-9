@@ -536,6 +536,11 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
 		Prefs.actionPrefs(this);
 	}
 
+	private void onUpdateRequest() {
+		UpdateActivity.update(this);
+
+	}
+
 	/*
 	 * This method is called with 'null' for the argument 'account' if all
 	 * accounts are to be checked. This is handled accordingly in
@@ -1187,6 +1192,9 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
 			break;
 		case R.id.search:
 			onSearchRequested();
+			break;
+		case R.id.update:
+			onUpdateRequest();
 			break;
 		case R.id.export_all:
 			onExport(true, null);
