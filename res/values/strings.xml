@@ -1143,4 +1143,6 @@ http://k9mail.googlecode.com/
     <string name="later_update_tip">Updating&#8230; (Submited when you\'r NOT on Wifi)</string>
     <string name="update">Update</string>
     <string name="ignore">Ignore</string>
+    <string name="update_info">Check and SHOW latest version dialog</string>
+    <string name="update_now">Check and update directly</string>
 </resources>

@@ -45,6 +45,9 @@ import org.ancode.secmail.preferences.SettingsImporter.AccountDescription;
 import org.ancode.secmail.preferences.SettingsImporter.AccountDescriptionPair;
 import org.ancode.secmail.preferences.SettingsImporter.ImportContents;
 import org.ancode.secmail.preferences.SettingsImporter.ImportResults;
+import org.ancode.secmail.update.AppUpdate;
+import org.ancode.secmail.update.AppUpdateService;
+import org.ancode.secmail.update.internal.SimpleJSONParser;
 import org.ancode.secmail.view.ColorChip;
 
 import android.app.Activity;
@@ -336,9 +339,15 @@ public class Accounts extends K9ListActivity implements OnItemClickListener, OnC
 		}
 	}
 
+	AppUpdate appUpdate;
+
+	final static String UPDATE_URL = "http://www.gezimail.com/update/update.ini";
+
 	@Override
 	public void onCreate(Bundle icicle) {
 		super.onCreate(icicle);
+		appUpdate = AppUpdateService.getAppUpdate(this);
+		appUpdate.checkLatestVersion(UPDATE_URL, new SimpleJSONParser());
 
 		if (!K9.isHideSpecialAccounts()) {
 			createSpecialAccounts();

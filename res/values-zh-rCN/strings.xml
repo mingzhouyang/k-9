@@ -1113,4 +1113,6 @@
     <string name="later_update_tip">Updating&#8230; (Submited when you\'r NOT on Wifi)</string>
     <string name="update">更新</string>
     <string name="ignore">忽略</string>
+    <string name="update_info">检查是否有更新</string>
+    <string name="update_now">检查更新并下载</string>
 </resources>
